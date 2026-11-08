@@ -9,8 +9,11 @@ platform directory.
 - **Default hotkey:** `Ctrl+Alt+H` to open or close the panel without switching
   input methods. Override it with `FCITX5_INK_HOTKEY`, using fcitx5 key syntax
   such as `Control+Alt+H` or `Super+i`.
-- **Input method entry:** `Ink` / 墨笔, label 墨. It also appears in
-  `fcitx5-configtool` if you prefer to switch by input method.
+- **Recommended usage:** press `Ctrl+Alt+H`; no input method switching is
+  required.
+- **Input method entry:** `Ink` / 墨笔 is optional and not the recommended
+  path. Adding it to the fcitx5 input method group currently triggers an
+  activation flicker; see `docs/plans/001-handwriting-ux.md`.
 
 ## Layout: crates/handwriting
 
@@ -103,8 +106,13 @@ Installed files:
 ```
 
 Restart fcitx5 after installing (`fcitx5 -d --replace` or your service
-manager), then either press `Ctrl+Alt+H` or add 「墨笔」 in
-`fcitx5-configtool`.
+manager), then press `Ctrl+Alt+H`.
+
+Do not add 「墨笔」 to the fcitx5 input method group for normal use. The
+handwriting panel is a hotkey tool, not an input mode that must be selected;
+the optional input method entry is currently a test path with a known
+activation flicker. The follow-up plan is
+`docs/plans/001-handwriting-ux.md`.
 
 ## Test
 
@@ -150,6 +158,8 @@ should use a release tarball source and checksum.
   try to follow the text cursor.
 - `handwriting-core` is GUI-independent. A future GPUI Kit frontend can reuse
   it and the same socket protocol without touching the addon.
+- Selecting Ink from `fcitx5-configtool` currently causes activation flicker;
+  use `Ctrl+Alt+H` instead. This is tracked in the follow-up plan.
 
 ## License
 

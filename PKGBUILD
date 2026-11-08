@@ -12,7 +12,6 @@ url="https://github.com/YangtseSu/fcitx5-ink"
 license=('GPL-3.0-or-later' 'MPL-2.0' 'BSD-3-Clause' 'LGPL-2.1-or-later')
 depends=('fcitx5' 'gtk4' 'cairo' 'pango' 'glib2')
 makedepends=('cmake' 'rust' 'nlohmann-json' 'pkgconf' 'python')
-optdepends=('fcitx5-configtool: add Ink to the input method group')
 source=("handwriting-zh_CN.model::https://raw.githubusercontent.com/metasequoiaime/msime-engine/a9b9f092219505166c927843762b650d1e0e501d/handwriting/models/handwriting-zh_CN.model")
 sha256sums=('e16153d1ff267cd479aea260d6f71a3edda8b4ba06db2d121513adda65a4449e')
 

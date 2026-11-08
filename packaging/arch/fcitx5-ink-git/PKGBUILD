@@ -12,7 +12,6 @@ url="https://github.com/YangtseSu/fcitx5-ink"
 license=('GPL-3.0-or-later' 'MPL-2.0' 'BSD-3-Clause' 'LGPL-2.1-or-later')
 depends=('fcitx5' 'gtk4' 'cairo' 'pango' 'glib2')
 makedepends=('cmake' 'rust' 'nlohmann-json' 'pkgconf' 'python' 'git')
-optdepends=('fcitx5-configtool: add Ink to the input method group')
 provides=('fcitx5-ink')
 conflicts=('fcitx5-ink')
 source=("$pkgname::git+file://$startdir/../../.."
