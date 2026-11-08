@@ -1,0 +1,24 @@
+| Language | Samples | Top-1 | Top-5 | Top-12 |
+|---|---:|---:|---:|---:|
+| ja | 6646 | 99.61% | 99.94% | 99.95% |
+  ja ja-000071 expected イ got 人 イ 乂 卩 仲
+  ja ja-000077 expected エ got 工 土 エ 下 牙
+  ja ja-000082 expected ( got 叩 片 刈 ほ 呎
+  ja ja-000129 expected 虻 got 虹 虻 昆 耘 粉
+  ja ja-000428 expected 浬 got 埋 浬 消 漁 渇
+  ja ja-000550 expected 貫 got 貴 骨 毋 婁 粛
+  ja ja-000963 expected 五 got 互 五 吾 曰 白
+  ja ja-001044 expected 肯 got 青 肯 毒 歳 散
+  ja ja-001207 expected 錆 got 錯 錆 錫 縉 錠
+  ja ja-001211 expected 三 got 工 三 与 渇 午
+  ja ja-001291 expected 時 got 朕 時 暁 捏 眩
+  ja ja-001451 expected 旬 got 匂 句 回 肉 自
+  ja ja-001794 expected 岨 got 岫 岨 咀 岾 姐
+  ja ja-002356 expected 之 got え 之 廴 到 氏
+  ja ja-002400 expected 狽 got 狙 狽 唄 独 猛
+  ja ja-002757 expected 卜 got 八 卜 悔 怯 怪
+  ja ja-002908 expected 友 got 反 友 有 収 攴
+  ja ja-003150 expected 丶 got エ 土 末 卜 一
+  ja ja-003165 expected 亠 got 二 亠 未 夫 子
+  ja ja-003544 expected 垳 got 哘 垳 坏 埒 垣
+note: these are Tomoe training samples, not a held-out generalization benchmark

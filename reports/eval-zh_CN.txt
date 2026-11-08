@@ -1,0 +1,24 @@
+| Language | Samples | Top-1 | Top-5 | Top-12 |
+|---|---:|---:|---:|---:|
+| zh_CN | 6763 | 99.35% | 99.93% | 99.97% |
+  zh_CN zh_CN-000031 expected 丬 got 干 丬 屮 仆 丌
+  zh_CN zh_CN-000036 expected 丶 got 丨 一 卜 士 旧
+  zh_CN zh_CN-000043 expected 丿 got 丨 入 丿 厶 爻
+  zh_CN zh_CN-000144 expected 仵 got 许 忏 件 伤 仲
+  zh_CN zh_CN-000183 expected 但 got 佃 但 诅 阻 佧
+  zh_CN zh_CN-000348 expected 兑 got 克 兑 免 秃 兔
+  zh_CN zh_CN-000359 expected 六 got 亓 六 贝 夫 壬
+  zh_CN zh_CN-000465 expected 刺 got 刹 刺 侧 厕 表
+  zh_CN zh_CN-000580 expected 卩 got 阝 卩 囗 力 胃
+  zh_CN zh_CN-000623 expected 反 got 友 反 认 仄 舟
+  zh_CN zh_CN-000637 expected 叨 got 叻 叨 饲 忉 吧
+  zh_CN zh_CN-000658 expected 吃 got 吒 吃 纥 吐 伧
+  zh_CN zh_CN-000685 expected 吩 got 纷 吩 呔 扮 皿
+  zh_CN zh_CN-000812 expected 唔 got 浯 唔 呸 唑 軎
+  zh_CN zh_CN-000874 expected 喧 got 揎 幅 萱 渲 喧
+  zh_CN zh_CN-000888 expected 嗑 got 嗌 溘 嗑 搐 阖
+  zh_CN zh_CN-000894 expected 嗝 got 塥 嗝 揎 嗌 幅
+  zh_CN zh_CN-000895 expected 嗟 got 搓 嗌 嗟 喵 滏
+  zh_CN zh_CN-000905 expected 嗯 got 摁 嗯 嗌 蒽 赋
+  zh_CN zh_CN-000935 expected 噌 got 增 噌 裸 缯 鲒
+note: these are Tomoe training samples, not a held-out generalization benchmark
