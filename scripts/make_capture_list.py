@@ -42,7 +42,7 @@ def main():
     if args.limit < len(labels):
         labels = random.Random(args.seed).sample(labels, args.limit)
     output = args.out or (
-        ROOT / "data" / "capture" / f"{args.language}.txt"
+        ROOT / "data" / "capture" / "generated" / f"{args.language}.txt"
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(labels) + "\n", encoding="utf-8")

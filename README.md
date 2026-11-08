@@ -19,8 +19,9 @@ docs/
 data/
   tomoe/          online stroke corpora: ja, zh_CN, zh_TW (LGPL-2.1)
   manifests/      pinned URLs, sizes and SHA-256 for data and models
-  capture/        generated target-character lists
+  capture/        generated target-character lists; ignored
   collected/      local captured samples; ignored by Git
+  evaluation/     consented writer samples and manifest
 models/           fetched models; ignored by Git
 scripts/          fetch, verify, convert, evaluate, make capture lists
 tools/            capture UI and Zinnia evaluation adapter
@@ -33,10 +34,21 @@ Capture a held-out evaluation sample locally:
 ```sh
 python3 scripts/make_capture_list.py --language zh_CN --limit 300
 python3 tools/capture/capture.py --language zh_CN --writer w1 \
-  --characters data/capture/zh_CN.txt
+  --characters data/capture/generated/zh_CN.txt
 ```
 
-Collected samples stay under `data/collected/` and are ignored by Git.
+Collected samples stay under `data/collected/` and are ignored by Git. To add
+a consented writer to the repository:
+
+```sh
+python3 scripts/promote_capture.py \
+  --input data/collected/zh_CN-w1.jsonl \
+  --language zh_CN --writer w1 --license CC-BY-4.0 --consent
+```
+
+This writes `data/evaluation/<language>/<writer>.jsonl` and updates
+`data/evaluation/manifest.json`. Use anonymous writer IDs and keep evaluation
+writers out of training.
 
 ## Quick start
 

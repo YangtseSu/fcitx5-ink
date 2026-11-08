@@ -7,3 +7,4 @@ __pycache__/
 /experiments/**/runs/
 /tools/eval/target/
 /data/collected/*.jsonl
+/data/capture/generated/

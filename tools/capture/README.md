@@ -8,7 +8,7 @@ python3 scripts/make_capture_list.py --language zh_CN --limit 300
 python3 tools/capture/capture.py \
   --language zh_CN \
   --writer w1 \
-  --characters data/capture/zh_CN.txt
+  --characters data/capture/generated/zh_CN.txt
 ```
 
 Controls:

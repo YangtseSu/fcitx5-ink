@@ -73,6 +73,24 @@ SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
 [[annotations]]
+path = "data/evaluation/README.md"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "data/evaluation/manifest.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "data/capture/generated/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "the Tomoe and Tegaki project contributors"
+SPDX-License-Identifier = "LGPL-2.1-or-later"
+
+[[annotations]]
 path = "data/collected/README.md"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
