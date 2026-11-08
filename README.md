@@ -249,5 +249,6 @@ data made these models possible.
 New code is GPL-3.0-or-later. The vendored handwriting module retains the
 msime-engine licenses: MPL-2.0 for the engine code, BSD-3-Clause for the
 Zinnia port, and GPL-3.0-only for the upstream test fixtures. The handwriting
-models are LGPL-2.1-or-later; their license is installed beside them as
-`HandwritingModel-LICENSE.txt` and kept in `LICENSES/LGPL-2.1-or-later.txt`.
+models are LGPL-2.1-or-later; their license ships with `fcitx5-ink-data` as
+`HandwritingModel-LICENSE.txt` and is kept in
+`LICENSES/LGPL-2.1-or-later.txt`.
