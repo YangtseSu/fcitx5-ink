@@ -91,7 +91,8 @@ The models are Tegaki 0.3 Zinnia files: `handwriting-ja.model` (26.1 MB),
 `handwriting-zh_CN.model` (26.8 MB) and `handwriting-zh_TW.model` (52.2 MB).
 They are not committed; `fetch-model.sh` downloads the pinned release archives,
 extracts each model, and verifies the extracted bytes against
-`resources/handwriting-model.lock.json`.
+`resources/handwriting-model.lock.json`. The Arch packages install them from
+the separate `fcitx5-ink-data` package.
 
 ## Install
 
@@ -99,17 +100,20 @@ extracts each model, and verifies the extracted bytes against
 sudo cmake --install build --prefix /usr
 ```
 
-Installed files:
+Installed files are split between the code package and `fcitx5-ink-data`:
 
 ```text
+fcitx5-ink:
 /usr/bin/fcitx5-ink-panel
 /usr/lib/fcitx5/libfcitx5-ink.so
 /usr/share/fcitx5/addon/ink.conf
+/usr/share/licenses/fcitx5-ink/
+
+fcitx5-ink-data:
 /usr/share/fcitx5-ink/handwriting-ja.model
 /usr/share/fcitx5-ink/handwriting-zh_CN.model
 /usr/share/fcitx5-ink/handwriting-zh_TW.model
-/usr/share/fcitx5-ink/HandwritingModel-LICENSE.txt
-/usr/share/licenses/fcitx5-ink/
+/usr/share/licenses/fcitx5-ink-data/HandwritingModel-LICENSE.txt
 ```
 
 Restart fcitx5 after installing (`fcitx5 -d --replace` or your service
@@ -185,19 +189,28 @@ development files.
 
 ## Arch packages
 
-The root `PKGBUILD` builds this checkout as a release package. For a local
-`-git` test package:
+The code and models are separate packages. Build and install the data package
+first; both code packages depend on it:
+
+```sh
+cd packaging/arch/fcitx5-ink-data
+makepkg -si
+```
+
+The root `PKGBUILD` builds this checkout as the release code package. For a
+local `-git` test package:
 
 ```sh
 cd packaging/arch/fcitx5-ink-git
 makepkg -si
 ```
 
-It clones the parent repository, so commit the working tree first. For an AUR
-upload, replace its `git+file://$startdir/../../..` source with
-`git+https://github.com/YangtseSu/fcitx5-ink.git`; the model archives are
-already pinned. The root `PKGBUILD` is a local-source package; an AUR release package
-should use a release tarball source and checksum.
+The `-git` package clones the parent repository, so commit the working tree
+first. For an AUR upload, publish `fcitx5-ink-data` and the chosen code
+package, and replace the `git+file://$startdir/../../..` source with
+`git+https://github.com/YangtseSu/fcitx5-ink.git`. The root `PKGBUILD` is a
+local-source package; an AUR release package should use a release tarball
+source and checksum.
 
 ## Limits
 
@@ -222,7 +235,8 @@ The project builds on two upstream layers:
   Zinnia, including the Chinese candidate policy and the original model
   packaging.
 - [Tegaki](https://github.com/tegaki/tegaki) — the Japanese, Simplified Chinese
-  and Traditional Chinese Zinnia models are the Tegaki 0.3 release files.
+  and Traditional Chinese Zinnia models are the Tegaki 0.3 release files
+  (published 2016).
 - [Zinnia](https://github.com/taku910/zinnia) by Taku Kudo — the original
   handwriting recognizer and model reader, under BSD-3-Clause. Tegaki's models
   use its format.

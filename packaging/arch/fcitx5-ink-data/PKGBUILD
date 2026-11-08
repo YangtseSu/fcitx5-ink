@@ -1,0 +1,56 @@
+# Maintainer: Yangtse Su <yangtsesu@gmail.com>
+# Handwriting models for fcitx5-ink. The versions are the Tegaki 0.3 release
+# (published 2016) and change independently of the fcitx5-ink code.
+
+pkgname=fcitx5-ink-data
+pkgver=0.3
+pkgrel=1
+pkgdesc="Handwriting models for fcitx5-ink (Japanese, Simplified and Traditional Chinese)"
+arch=('any')
+url="https://github.com/YangtseSu/fcitx5-ink"
+license=('LGPL-2.1-or-later')
+source=(
+  "tegaki-zinnia-simplified-chinese-0.3.zip::https://github.com/tegaki/tegaki/releases/download/v0.3/tegaki-zinnia-simplified-chinese-0.3.zip"
+  "tegaki-zinnia-traditional-chinese-0.3.zip::https://github.com/tegaki/tegaki/releases/download/v0.3/tegaki-zinnia-traditional-chinese-0.3.zip"
+  "tegaki-zinnia-japanese-0.3.zip::https://github.com/tegaki/tegaki/releases/download/v0.3/tegaki-zinnia-japanese-0.3.zip"
+  "HandwritingModel-LICENSE.txt::https://raw.githubusercontent.com/tegaki/tegaki/7a74e442c4130cccc226a7e7c2b683ac94c0cccb/tegaki-models/LGPL"
+)
+sha256sums=(
+  '45bb61a9a5e1ff571de9ac0711c316f29a064260feea6f5db6979ecd980498a3'
+  'f41032e67a4eff056813d243eabc32ea07eea404c714bdb5882a5b0fcda51690'
+  '07861bbb5440d74e705864721f12a5ce1c7f21a869f9c95ff21433d8994aafda'
+  'a190dc9c8043755d90f8b0a75fa66b9e42d4af4c980bf5ddc633f0124db3cee7'
+)
+
+prepare() {
+  mkdir -p "$srcdir/models"
+  bsdtar -xOf "$srcdir/tegaki-zinnia-simplified-chinese-0.3.zip" \
+    "tegaki-zinnia-simplified-chinese-0.3/handwriting-zh_CN.model" \
+    > "$srcdir/models/handwriting-zh_CN.model"
+  bsdtar -xOf "$srcdir/tegaki-zinnia-traditional-chinese-0.3.zip" \
+    "tegaki-zinnia-traditional-chinese-0.3/handwriting-zh_TW.model" \
+    > "$srcdir/models/handwriting-zh_TW.model"
+  bsdtar -xOf "$srcdir/tegaki-zinnia-japanese-0.3.zip" \
+    "tegaki-zinnia-japanese-0.3/handwriting-ja.model" \
+    > "$srcdir/models/handwriting-ja.model"
+}
+
+check() {
+  cd "$srcdir/models"
+  printf '%s\n' \
+    'e16153d1ff267cd479aea260d6f71a3edda8b4ba06db2d121513adda65a4449e  handwriting-zh_CN.model' \
+    'cd47f16b64e7ecaa4c2813d0f98231dfea7b411f48be1ead5c9b2eeb19330b11  handwriting-zh_TW.model' \
+    'd58618576d12c1ea38992606f30d19158a0a3beda3ac23bacccf1e48e651f2b2  handwriting-ja.model' \
+    | sha256sum -c -
+}
+
+package() {
+  install -Dm644 "$srcdir/models/handwriting-zh_CN.model" \
+    "$pkgdir/usr/share/fcitx5-ink/handwriting-zh_CN.model"
+  install -Dm644 "$srcdir/models/handwriting-zh_TW.model" \
+    "$pkgdir/usr/share/fcitx5-ink/handwriting-zh_TW.model"
+  install -Dm644 "$srcdir/models/handwriting-ja.model" \
+    "$pkgdir/usr/share/fcitx5-ink/handwriting-ja.model"
+  install -Dm644 "$srcdir/HandwritingModel-LICENSE.txt" \
+    "$pkgdir/usr/share/licenses/fcitx5-ink-data/HandwritingModel-LICENSE.txt"
+}
