@@ -112,8 +112,10 @@ Acceptance:
 
 ## Immediate next actions
 
-1. Commit the initial repository and data.
-2. Implement `verify-data.sh`, `fetch-models.sh`, `dataset-stats.py`.
-3. Build the JSONL converter and a Zinnia evaluation adapter.
-4. Collect a small self-written evaluation set (with consent) for Chinese,
+1. [x] Commit the initial repository and data.
+2. [x] Implement `verify-data.sh`, `fetch-models.sh`, `dataset-stats.py`.
+3. [x] Build the JSONL converter and a Zinnia evaluation adapter.
+4. [x] Add a minimal capture tool and a consent-gated promotion script.
+5. [ ] Collect a small self-written evaluation set (with consent) for Chinese,
    because the current Chinese corpora have no within-class holdout.
+6. [ ] Add Wagomu and CNN adapters after the held-out samples exist.

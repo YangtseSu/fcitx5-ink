@@ -22,5 +22,6 @@ Controls:
 
 Each record uses the common JSONL shape (`id`, `language`, `character`,
 `width`, `height`, `strokes`) plus `source`, `writer` and `created_at`.
-Collected files are ignored by Git because they are personal writing samples;
-commit them only with explicit consent.
+Collected files are ignored by Git because they are personal writing samples.
+To add a consented writer to the evaluation set, follow
+`data/evaluation/README.md` and use `scripts/promote_capture.py`.
