@@ -12,5 +12,5 @@ fetch the same pinned archives.
 The source is the [Tegaki 0.3 release](https://github.com/tegaki/tegaki/releases/tag/v0.3),
 published in 2016; the files inside the archives carry 2009 timestamps.
 The models are LGPL-2.1-or-later. Their license text ships with the
-`fcitx5-ink-data` package as `HandwritingModel-LICENSE.txt` and is kept in
-`LICENSES/LGPL-2.1-or-later.txt`.
+`fcitx5-ink-data` package as `HandwritingModel-LICENSE.txt`; the source data
+and its LGPL notice live in the `fcitx5-ink-data` repository.

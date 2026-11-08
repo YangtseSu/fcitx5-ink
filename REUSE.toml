@@ -80,7 +80,7 @@ SPDX-License-Identifier = "GPL-3.0-or-later"
 path = "resources/handwriting-model.lock.json"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
-SPDX-License-Identifier = "LGPL-2.1-or-later"
+SPDX-License-Identifier = "GPL-3.0-or-later"
 
 [[annotations]]
 path = "Cargo.toml"

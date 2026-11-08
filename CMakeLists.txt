@@ -29,5 +29,4 @@ install(FILES
           "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
           "${CMAKE_CURRENT_SOURCE_DIR}/LICENSES/MPL-2.0.txt"
           "${CMAKE_CURRENT_SOURCE_DIR}/LICENSES/BSD-3-Clause.txt"
-          "${CMAKE_CURRENT_SOURCE_DIR}/LICENSES/LGPL-2.1-or-later.txt"
         DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/fcitx5-ink")
