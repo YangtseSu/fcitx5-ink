@@ -4,6 +4,8 @@
 /src/
 /pkg/
 /handwriting-zh_CN.model
+/tegaki-zinnia-*.zip
+/HandwritingModel-LICENSE.txt
 
 /package.tar.zst
 /*.pkg.tar.zst
@@ -12,3 +14,7 @@ packaging/arch/**/pkg/
 packaging/arch/**/*.pkg.tar.zst
 packaging/arch/fcitx5-ink-git/fcitx5-ink-git/
 packaging/arch/fcitx5-ink-git/handwriting-zh_CN.model
+packaging/arch/**/tegaki-zinnia-*.zip
+packaging/arch/**/HandwritingModel-LICENSE.txt
+/tegaki-zinnia-*.zip
+/HandwritingModel-LICENSE.txt
