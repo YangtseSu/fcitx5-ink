@@ -24,13 +24,9 @@ cat > "$tmp/config/fcitx5/profile" <<'EOF'
 [Groups/0]
 Name=Default
 Default Layout=us
-DefaultIM=ink
+DefaultIM=keyboard-us
 
 [Groups/0/Items/0]
-Name=ink
-Layout=
-
-[Groups/0/Items/1]
 Name=keyboard-us
 Layout=
 
@@ -47,7 +43,7 @@ if ! dbus-run-session -- xvfb-run -a env \
   XDG_DATA_HOME="$tmp/data" \
   XDG_CACHE_HOME="$tmp/cache" \
   XDG_STATE_HOME="$tmp/state" \
-  XDG_DATA_DIRS="$build/addon/test-data:/usr/share" \
+  XDG_DATA_DIRS="$build/addon/test-data" \
   GTK_IM_MODULE=fcitx \
   XMODIFIERS=@im=fcitx \
   FCITX5_INK_PANEL=/bin/true \
@@ -62,6 +58,8 @@ if ! dbus-run-session -- xvfb-run -a env \
     echo $! >"$3"
     sleep 2
     xdotool search --name fcitx5-ink-test windowfocus 2>/dev/null || true
+    sleep 1
+    xdotool key --clearmodifiers ctrl+alt+h
     sleep 1
     python3 "$4" "你"
     sleep 1

@@ -1,7 +1,7 @@
 [Addon]
 Name=Ink
 Name[zh_CN]=墨笔
-Category=InputMethod
+Category=Module
 Type=SharedLibrary
 Library=@INK_INSTALL_LIBRARY@
 OnDemand=False

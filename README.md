@@ -1,19 +1,18 @@
 # fcitx5-ink (墨笔)
 
-A standalone handwriting input method for fcitx5. The addon is C++20, the
+A standalone handwriting input tool for fcitx5. The addon is C++20, the
 panel is GTK4 via `gtk4-rs`, and recognition is the vendored msime handwriting
 engine. It does not depend on the msime input method, its host code, or its
 platform directory.
 
 - **Name:** `fcitx5-ink`; Chinese UI name **墨笔**.
-- **Default hotkey:** `Ctrl+Alt+H` to open or close the panel without switching
-  input methods. Override it with `FCITX5_INK_HOTKEY`, using fcitx5 key syntax
-  such as `Control+Alt+H` or `Super+i`.
-- **Recommended usage:** press `Ctrl+Alt+H`; no input method switching is
-  required.
-- **Input method entry:** `Ink` / 墨笔 is optional and not the recommended
-  path. Adding it to the fcitx5 input method group currently triggers an
-  activation flicker; see `docs/plans/001-handwriting-ux.md`.
+- **Default hotkey:** `Control+Alt+H` to open or close the panel without
+  switching input methods. Change it in the panel's 设置 window; fcitx5 key
+  syntax such as `Super+i` is accepted.
+- **Settings:** stored in `$XDG_CONFIG_HOME/fcitx5-ink/config.toml`; the addon
+  reloads the hotkey through its socket when the panel saves.
+- **Usage:** press the hotkey; no input method entry or switch is involved.
+  Ink does not appear in `fcitx5-configtool` and cannot be added to a group.
 
 ## Layout: crates/handwriting
 
@@ -45,8 +44,8 @@ fcitx5-ink/
 ├── addon/       fcitx5 C++20 addon
 ├── crates/
 │   ├── handwriting/  recognizer crate; vendor/ is upstream, byte-identical
-│   ├── core/         model discovery, recognition wrapper, panel IPC
-│   └── panel/        GTK4 panel
+│   ├── core/         config, model discovery, recognition wrapper, panel IPC
+│   └── panel/        GTK4 panel, stroke history, settings
 ├── scripts/
 ├── tests/
 ├── PKGBUILD
@@ -57,16 +56,18 @@ fcitx5-ink/
 
 ```text
 GTK4 panel (crates/panel)
-  ├─ draws ink and shows candidates
+  ├─ draws ink, edits strokes and shows candidates
   ├─ calls the vendored recognizer through core
-  └─ sends {"op":"text","text":"..."} over a Unix socket
+  ├─ reads/writes config.toml
+  └─ sends {"op":"text"} and {"op":"reload"} over a Unix socket
                  │
 fcitx5 addon (addon) ── commitString ──> focused application
 ```
 
-The addon owns the focused `InputContext` and the socket at
+The addon is a fcitx5 module, not an input method. It owns the focused
+`InputContext` and the socket at
 `$XDG_RUNTIME_DIR/fcitx5-ink/panel-input.sock` (directory `0700`, socket
-`0600`, same-uid peer check). It also watches `Ctrl+Alt+H` globally through
+`0600`, same-uid peer check). It watches the configured hotkey globally through
 fcitx5 key events. The panel hides itself before asking to commit so focus can
 return to the editor; the addon keeps a request pending for up to 700 ms while
 that focus returns.
@@ -77,7 +78,7 @@ compiled here. The only vendored source is `crates/handwriting/vendor/`.
 ## Build
 
 Requirements: fcitx5 development headers, GTK4 development files, CMake,
-Rust 1.89+, and `nlohmann-json`.
+Rust 1.89+, `nlohmann-json`, and the header-only `tomlplusplus` package.
 
 ```sh
 ./scripts/fetch-model.sh
@@ -100,19 +101,45 @@ Installed files:
 /usr/bin/fcitx5-ink-panel
 /usr/lib/fcitx5/libfcitx5-ink.so
 /usr/share/fcitx5/addon/ink.conf
-/usr/share/fcitx5/inputmethod/ink.conf
 /usr/share/fcitx5-ink/handwriting-zh_CN.model
 /usr/share/licenses/fcitx5-ink/
 ```
 
 Restart fcitx5 after installing (`fcitx5 -d --replace` or your service
-manager), then press `Ctrl+Alt+H`.
+manager), then press `Control+Alt+H`.
 
-Do not add 「墨笔」 to the fcitx5 input method group for normal use. The
-handwriting panel is a hotkey tool, not an input mode that must be selected;
-the optional input method entry is currently a test path with a known
-activation flicker. The follow-up plan is
-`docs/plans/001-handwriting-ux.md`.
+The panel has undo, redo, delete-last-stroke and clear controls. Keyboard
+shortcuts while the panel is focused:
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+Z` | undo |
+| `Ctrl+Shift+Z`, `Ctrl+Y` | redo |
+| `BackSpace` | delete the last stroke |
+| `Delete` | clear all strokes |
+| `Escape` | close the panel |
+
+## Configure
+
+Open 设置 in the panel header. The window edits the hotkey, stroke width
+(1–8 px) and the number of visible candidates (1–12). Save validates the
+hotkey with fcitx5, writes the file atomically, and asks the addon to reload
+it. `config.toml` has this shape:
+
+```toml
+hotkey = "Control+Alt+H"
+
+[panel]
+stroke_width = 3
+max_candidates = 9
+```
+
+Modifier names are case-sensitive: `Shift`, `Control`, `Alt`, `Super` and
+`Hyper`. A hotkey must contain at least one modifier. `FCITX5_INK_HOTKEY`
+remains an override for testing and wins over the file; an invalid override is
+ignored. Saving from 设置 applies the hotkey immediately. If you edit the file
+by hand, restart fcitx5 so the addon re-reads it; panel options are read when
+the panel starts.
 
 ## Test
 
@@ -124,10 +151,13 @@ The test suite covers:
 
 - the vendored engine's unit tests, including the Zinnia parity test when the
   model is available;
+- config parsing, hotkey validation, override precedence and atomic saves;
+- stroke history and recognition-generation tests for the panel;
 - the panel socket client's success and error paths;
 - a real recognition self-test (`中` is the first candidate);
-- an isolated `dbus-run-session` + `Xvfb` fcitx5 run that loads the addon,
-  switches to `ink`, and verifies that the test client receives `TEXT:你`.
+- isolated `dbus-run-session` + `Xvfb` fcitx5 runs that verify a configured
+  hotkey and socket reload, that selecting `ink` never opens the panel, and
+  that the test client receives `TEXT:你` through the hotkey path.
 
 The integration test needs `dbus-run-session`, `Xvfb`, `xdotool`, and GTK3
 development files.
@@ -158,8 +188,6 @@ should use a release tarball source and checksum.
   try to follow the text cursor.
 - `handwriting-core` is GUI-independent. A future GPUI Kit frontend can reuse
   it and the same socket protocol without touching the addon.
-- Selecting Ink from `fcitx5-configtool` currently causes activation flicker;
-  use `Ctrl+Alt+H` instead. This is tracked in the follow-up plan.
 
 ## License
 

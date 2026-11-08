@@ -71,12 +71,6 @@ SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
 [[annotations]]
-path = "addon/ink-inputmethod.conf"
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
-SPDX-License-Identifier = "GPL-3.0-or-later"
-
-[[annotations]]
 path = "resources/handwriting-model.lock.json"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"

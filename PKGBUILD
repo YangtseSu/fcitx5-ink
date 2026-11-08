@@ -6,12 +6,12 @@
 pkgname=fcitx5-ink
 pkgver=0.1.0
 pkgrel=1
-pkgdesc="Handwriting input method for fcitx5 with a GTK4 panel"
+pkgdesc="Handwriting input tool for fcitx5 with a GTK4 panel"
 arch=('x86_64' 'aarch64')
 url="https://github.com/YangtseSu/fcitx5-ink"
 license=('GPL-3.0-or-later' 'MPL-2.0' 'BSD-3-Clause' 'LGPL-2.1-or-later')
 depends=('fcitx5' 'gtk4' 'cairo' 'pango' 'glib2')
-makedepends=('cmake' 'rust' 'nlohmann-json' 'pkgconf' 'python')
+makedepends=('cmake' 'rust' 'nlohmann-json' 'tomlplusplus' 'pkgconf' 'python')
 source=("handwriting-zh_CN.model::https://raw.githubusercontent.com/metasequoiaime/msime-engine/a9b9f092219505166c927843762b650d1e0e501d/handwriting/models/handwriting-zh_CN.model")
 sha256sums=('e16153d1ff267cd479aea260d6f71a3edda8b4ba06db2d121513adda65a4449e')
 
@@ -38,6 +38,7 @@ check() {
   MSIME_HANDWRITING_MODEL="$srcdir/model/handwriting-zh_CN.model" \
     CARGO_TARGET_DIR="$srcdir/target" \
     cargo test --workspace
+  ctest --test-dir "$srcdir/build" --output-on-failure
 }
 
 package() {

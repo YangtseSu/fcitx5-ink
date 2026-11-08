@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 project(fcitx5-ink VERSION 0.1.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
+include(CTest)
 
 set(FCITX5_ADDON_DIR "${CMAKE_INSTALL_LIBDIR}/fcitx5" CACHE PATH "Fcitx5 addon directory")
 

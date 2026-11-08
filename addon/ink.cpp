@@ -1,18 +1,24 @@
 // SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// fcitx5-ink: a standalone handwriting input method for fcitx5.
+// fcitx5-ink: a standalone handwriting input tool for fcitx5.
 //
 // The addon owns the focused input context and a small user-private socket.
 // The GTK4 panel draws ink, recognizes it with the vendored handwriting engine,
 // hides itself, and asks this addon to commit the chosen text. No msime host
 // header or platform code is compiled here.
+//
+// Handwriting is a hotkey tool, not an input method. The addon is a module:
+// it does not expose an InputMethod entry, so adding Ink to an input method
+// group cannot activate it and cannot flicker.
+
+#include "config.h"
 
 #include <fcitx/addonfactory.h>
+#include <fcitx/addoninstance.h>
 #include <fcitx/addonmanager.h>
 #include <fcitx/event.h>
 #include <fcitx/inputcontext.h>
-#include <fcitx/inputmethodengine.h>
 #include <fcitx/instance.h>
 #include <fcitx-utils/event.h>
 #include <fcitx-utils/eventloopinterface.h>
@@ -62,16 +68,6 @@ const char *panel_program() {
   if (configured && *configured)
     return configured;
   return FCITX5_INK_PANEL_PATH;
-}
-
-fcitx::KeyList default_hotkey() {
-  if (const char *configured = std::getenv("FCITX5_INK_HOTKEY");
-      configured && *configured) {
-    fcitx::Key key(configured);
-    if (key.isValid())
-      return {key};
-  }
-  return {fcitx::Key("Control+Alt+H")};
 }
 
 bool restricted(fcitx::InputContext *ic) {
@@ -219,10 +215,19 @@ private:
 
 } // namespace
 
-class InkEngine final : public fcitx::InputMethodEngineV2 {
+class InkAddon final : public fcitx::AddonInstance {
 public:
-  explicit InkEngine(fcitx::Instance *instance)
-      : instance_(instance), hotkey_(default_hotkey()) {
+  explicit InkAddon(fcitx::Instance *instance) : instance_(instance) {
+    std::string error;
+    fcitx::Key hotkey;
+    if (!load_hotkey(&hotkey, &error)) {
+      FCITX_WARN() << "ink: " << error << "; using " << kDefaultHotkey;
+      hotkey_ = {fcitx::Key(kDefaultHotkey)};
+    } else {
+      hotkey_ = {hotkey};
+    }
+    FCITX_INFO() << "ink: hotkey " << hotkey_.front().toString();
+
     const auto path = socket_path();
     if (path.empty() || !socket_.open(path)) {
       FCITX_WARN() << "ink: cannot open panel socket " << path;
@@ -246,7 +251,7 @@ public:
           if (restricted(ic))
             return;
           key.filterAndAccept();
-          if (panel_pid_ > 0 && target_ == ic) {
+          if (panel_alive() && target_ == ic) {
             close_panel();
             target_ = nullptr;
           } else {
@@ -259,10 +264,10 @@ public:
         fcitx::EventType::InputContextFocusIn,
         fcitx::EventWatcherPhase::PreInputMethod, [this](fcitx::Event &event) {
           auto *ic = static_cast<fcitx::InputContextEvent &>(event).inputContext();
-          if (target_ && target_ != ic && panel_pid_ > 0)
+          if (target_ && target_ != ic && panel_alive()) {
             close_panel();
-          if (instance_->inputMethodEngine(ic) == this)
-            target_ = ic;
+            target_ = nullptr;
+          }
         });
 
     destroy_watch_ = instance_->watchEvent(
@@ -276,39 +281,14 @@ public:
         });
   }
 
-  void activate(const fcitx::InputMethodEntry &,
-                fcitx::InputContextEvent &event) override {
-    target_ = event.inputContext();
-    if (!restricted(target_))
-      launch_panel();
-  }
-
-  void deactivate(const fcitx::InputMethodEntry &,
-                  fcitx::InputContextEvent &event) override {
-    // The panel takes focus while it is open. Keep it alive on that focus-out;
-    // an actual input method switch closes it.
-    if (event.type() == fcitx::EventType::InputContextFocusOut)
+  void reloadConfig() override {
+    std::string error;
+    fcitx::Key hotkey;
+    if (!load_hotkey(&hotkey, &error)) {
+      FCITX_WARN() << "ink: " << error;
       return;
-    close_panel();
-    target_ = nullptr;
-  }
-
-  void reset(const fcitx::InputMethodEntry &,
-             fcitx::InputContextEvent &) override {
-    close_panel();
-    target_ = nullptr;
-  }
-
-  void keyEvent(const fcitx::InputMethodEntry &, fcitx::KeyEvent &) override {
-    // The global hotkey watcher and the panel own the interaction. With the
-    // panel closed, ordinary keys pass through unchanged.
-  }
-
-  std::vector<fcitx::InputMethodEntry> listInputMethods() override {
-    std::vector<fcitx::InputMethodEntry> entries;
-    entries.emplace_back("ink", "Ink", "zh_CN", "ink");
-    entries.back().setNativeName("墨笔").setLabel("墨");
-    return entries;
+    }
+    update_hotkey(hotkey);
   }
 
 private:
@@ -318,6 +298,11 @@ private:
     std::chrono::steady_clock::time_point deadline;
   };
 
+  void update_hotkey(const fcitx::Key &hotkey) {
+    hotkey_ = {hotkey};
+    FCITX_INFO() << "ink: hotkey " << hotkey.toString();
+  }
+
   void accept_request() {
     auto accepted = socket_.accept_request();
     if (!accepted)
@@ -325,19 +310,61 @@ private:
     const int fd = accepted->first;
     try {
       const auto request = nlohmann::json::parse(accepted->second);
-      if (!request.is_object() || request.value("op", "") != "text") {
-        PanelSocket::reply_and_close(fd, R"({"ok":false,"error":"invalid"})");
+      if (!request.is_object()) {
+        reply_error(fd, "invalid");
         return;
       }
-      const auto text = request.value("text", "");
-      if (!valid_text(text)) {
-        PanelSocket::reply_and_close(fd, R"({"ok":false,"error":"invalid"})");
+      const auto op = request.value("op", "");
+      if (op == "text") {
+        const auto text = request.value("text", "");
+        if (!valid_text(text)) {
+          reply_error(fd, "invalid");
+          return;
+        }
+        submit_text(fd, text);
         return;
       }
-      submit_text(fd, text);
+      if (op == "reload") {
+        reload_from_disk(fd);
+        return;
+      }
+      if (op == "validate") {
+        const auto value = request.value("hotkey", "");
+        fcitx::Key key;
+        if (!validate_hotkey(value, &key)) {
+          reply_error(fd, "invalid_hotkey");
+          return;
+        }
+        PanelSocket::reply_and_close(
+            fd, nlohmann::json{{"ok", true}, {"hotkey", key.toString()}}.dump());
+        return;
+      }
+      reply_error(fd, "invalid");
     } catch (...) {
-      PanelSocket::reply_and_close(fd, R"({"ok":false,"error":"invalid"})");
+      reply_error(fd, "invalid");
     }
+  }
+
+  static void reply_error(int fd, const std::string &error) {
+    PanelSocket::reply_and_close(
+        fd, nlohmann::json{{"ok", false}, {"error", error}}.dump());
+  }
+
+  void reload_from_disk(int fd) {
+    std::string error;
+    fcitx::Key hotkey;
+    if (!load_hotkey(&hotkey, &error)) {
+      FCITX_WARN() << "ink: " << error;
+      PanelSocket::reply_and_close(
+          fd, nlohmann::json{{"ok", false},
+                             {"error", "config"},
+                             {"message", error}}
+                  .dump());
+      return;
+    }
+    update_hotkey(hotkey);
+    PanelSocket::reply_and_close(
+        fd, nlohmann::json{{"ok", true}, {"hotkey", hotkey.toString()}}.dump());
   }
 
   void submit_text(int fd, const std::string &text) {
@@ -347,7 +374,7 @@ private:
       return;
     }
     if (pending_.size() >= kPendingLimit) {
-      PanelSocket::reply_and_close(fd, R"({"ok":false,"error":"no_focus"})");
+      reply_error(fd, "no_focus");
       return;
     }
     pending_.push_back(
@@ -365,8 +392,7 @@ private:
         continue;
       }
       if (now >= entry->deadline) {
-        PanelSocket::reply_and_close(entry->fd,
-                                     R"({"ok":false,"error":"no_focus"})");
+        reply_error(entry->fd, "no_focus");
         entry = pending_.erase(entry);
         continue;
       }
@@ -392,13 +418,22 @@ private:
     }
   }
 
-  void launch_panel() {
-    if (panel_pid_ > 0) {
-      const pid_t result = ::waitpid(panel_pid_, nullptr, WNOHANG);
-      if (result == 0)
-        return;
+  bool panel_alive() {
+    if (panel_pid_ <= 0)
+      return false;
+    const pid_t result = ::waitpid(panel_pid_, nullptr, WNOHANG);
+    if (result == 0)
+      return true;
+    if (result == panel_pid_ || (result < 0 && errno == ECHILD)) {
       panel_pid_ = 0;
+      return false;
     }
+    return true;
+  }
+
+  void launch_panel() {
+    if (panel_alive())
+      return;
     const auto socket = socket_path();
     if (socket.empty())
       return;
@@ -450,7 +485,7 @@ private:
 class InkFactory final : public fcitx::AddonFactory {
 public:
   fcitx::AddonInstance *create(fcitx::AddonManager *manager) override {
-    return new InkEngine(manager->instance());
+    return new InkAddon(manager->instance());
   }
 };
 

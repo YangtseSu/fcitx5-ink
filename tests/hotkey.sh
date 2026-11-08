@@ -17,8 +17,16 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-mkdir -p "$tmp/runtime" "$tmp/config" "$tmp/cache" "$tmp/state" "$tmp/data"
+mkdir -p "$tmp/runtime" "$tmp/config/fcitx5-ink" "$tmp/cache" "$tmp/state" "$tmp/data"
 chmod 700 "$tmp/runtime"
+
+cat > "$tmp/config/fcitx5-ink/config.toml" <<'EOF'
+hotkey = "Control+Alt+J"
+
+[panel]
+stroke_width = 3
+max_candidates = 9
+EOF
 
 cat > "$tmp/panel-stub" <<'EOF'
 #!/bin/sh
@@ -35,7 +43,7 @@ if ! dbus-run-session -- xvfb-run -a env \
   XDG_DATA_HOME="$tmp/data" \
   XDG_CACHE_HOME="$tmp/cache" \
   XDG_STATE_HOME="$tmp/state" \
-  XDG_DATA_DIRS="$build/addon/test-data:/usr/share" \
+  XDG_DATA_DIRS="$build/addon/test-data" \
   GTK_IM_MODULE=fcitx \
   XMODIFIERS=@im=fcitx \
   FCITX5_INK_PANEL="$tmp/panel-stub" \
@@ -52,11 +60,48 @@ if ! dbus-run-session -- xvfb-run -a env \
     sleep 2
     xdotool search --name fcitx5-ink-test windowfocus 2>/dev/null || true
     sleep 1
+
     xdotool key --clearmodifiers ctrl+alt+h
     sleep 1
+    if [ -e "$5" ]; then
+      echo "the default hotkey stayed active despite config.toml" >&2
+      exit 1
+    fi
+
+    xdotool key --clearmodifiers ctrl+alt+j
+    sleep 1
+    if [ ! -s "$5" ]; then
+      echo "the configured hotkey did not open the panel" >&2
+      exit 1
+    fi
+
+    printf "hotkey = \"Control+Alt+K\"\n" >"$6"
+    reply=$(python3 "$7" "{\"op\":\"reload\"}")
+    case "$reply" in
+      *"Control+Alt+K"*) ;;
+      *) echo "reload reply: $reply" >&2; exit 1 ;;
+    esac
+
+    xdotool key --clearmodifiers ctrl+alt+j
+    sleep 1
+    if [ "$(wc -l <"$5")" -ne 1 ]; then
+      echo "the old hotkey still opened the panel" >&2
+      cat "$5" >&2
+      exit 1
+    fi
+
+    xdotool key --clearmodifiers ctrl+alt+k
+    sleep 1
+    if [ "$(wc -l <"$5")" -ne 2 ]; then
+      echo "the reloaded hotkey did not open the panel" >&2
+      cat "$5" >&2
+      exit 1
+    fi
+
     fcitx5-remote -e 2>/dev/null || true
   ' sh "$tmp/fcitx.log" "$tmp/client" "$tmp/client.log" "$tmp/client.pid" \
-    >"$tmp/test.log" 2>&1; then
+    "$tmp/panel.log" "$tmp/config/fcitx5-ink/config.toml" \
+    "$root/tests/panel-request.py" >"$tmp/test.log" 2>&1; then
   cat "$tmp/test.log" >&2
   exit 1
 fi
@@ -64,4 +109,4 @@ fi
 client_pid=$(cat "$tmp/client.pid" 2>/dev/null || true)
 grep -q -- '--socket' "$tmp/panel.log"
 grep -q 'fcitx5-ink/panel-input.sock' "$tmp/panel.log"
-echo "hotkey launched the panel"
+echo "configured hotkey and socket reload work"

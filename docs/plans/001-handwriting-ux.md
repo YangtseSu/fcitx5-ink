@@ -3,7 +3,7 @@
 
 # 001: Handwriting UX follow-up
 
-Status: proposed
+Status: implemented
 Date: 2026-11-08
 
 ## Problems
@@ -96,6 +96,21 @@ Date: 2026-11-08
 - Keep `FCITX5_INK_HOTKEY` as an environment override for testing, but make
   the config file the normal source.
 - Add tests for config parsing, invalid hotkeys and override precedence.
+
+## Result (2026-11-08)
+
+- The input method entry, `listInputMethods` and `inputmethod/ink.conf` were
+  removed. The addon is a `Module`; selecting `ink` cannot activate it, so the
+  activation/focus loop is gone. `tests/group-no-panel.sh` covers it.
+- The panel toolbar has undo, redo, delete-last-stroke and clear, with the
+  documented keyboard shortcuts and button sensitivity. Stroke history and
+  recognition generations are unit-tested without GTK.
+- `config.toml` stores `hotkey` and `[panel]` `stroke_width` and
+  `max_candidates`. The settings window validates the hotkey, writes the file
+  atomically, and asks the addon to reload it over the existing socket.
+  `FCITX5_INK_HOTKEY` still wins as a test override.
+- The hotkey integration test now verifies a configured hotkey, socket reload,
+  and that the old hotkey stops working.
 
 ## Acceptance
 

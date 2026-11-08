@@ -6,12 +6,12 @@
 pkgname=fcitx5-ink-git
 pkgver=0.1.0.r0.g0000000
 pkgrel=1
-pkgdesc="Handwriting input method for fcitx5 with a GTK4 panel (git)"
+pkgdesc="Handwriting input tool for fcitx5 with a GTK4 panel (git)"
 arch=('x86_64' 'aarch64')
 url="https://github.com/YangtseSu/fcitx5-ink"
 license=('GPL-3.0-or-later' 'MPL-2.0' 'BSD-3-Clause' 'LGPL-2.1-or-later')
 depends=('fcitx5' 'gtk4' 'cairo' 'pango' 'glib2')
-makedepends=('cmake' 'rust' 'nlohmann-json' 'pkgconf' 'python' 'git')
+makedepends=('cmake' 'rust' 'nlohmann-json' 'tomlplusplus' 'pkgconf' 'python' 'git')
 provides=('fcitx5-ink')
 conflicts=('fcitx5-ink')
 source=("$pkgname::git+file://$startdir/../../.."
@@ -46,6 +46,7 @@ check() {
   MSIME_HANDWRITING_MODEL="$srcdir/model/handwriting-zh_CN.model" \
     CARGO_TARGET_DIR="$srcdir/target" \
     cargo test --workspace
+  ctest --test-dir "$srcdir/build" --output-on-failure
 }
 
 package() {

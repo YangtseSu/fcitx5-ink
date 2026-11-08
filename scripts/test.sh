@@ -18,5 +18,7 @@ MSIME_HANDWRITING_MODEL="$model" CARGO_TARGET_DIR="$root/target" \
   cargo test --workspace
 
 "$panel" --self-test
+ctest --test-dir "$root/build" --output-on-failure
 "$root/tests/isolated-commit.sh"
+"$root/tests/group-no-panel.sh"
 "$root/tests/hotkey.sh"
