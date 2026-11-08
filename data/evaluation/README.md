@@ -20,9 +20,7 @@ Rules:
 
 - use an anonymous writer ID (`w1`, `w2`, ...), never a name or email;
 - obtain explicit consent before committing handwriting samples;
-- record the license in the manifest; `CC-BY-4.0` is the recommended default;
+- evaluation samples use CC-BY-4.0 by default; record the chosen license in
+  the manifest;
 - keep evaluation writers separate from any training split;
 - do not add samples that the writer wants to keep private.
-
-When the first sample is committed, add `LICENSES/CC-BY-4.0.txt` and annotate
-`data/evaluation/**/*.jsonl` with the sample license in `REUSE.toml`.

@@ -47,7 +47,8 @@ python3 scripts/promote_capture.py \
 ```
 
 This writes `data/evaluation/<language>/<writer>.jsonl` and updates
-`data/evaluation/manifest.json`. Use anonymous writer IDs and keep evaluation
+`data/evaluation/manifest.json`. Evaluation samples use CC-BY-4.0 by default;
+see `data/evaluation/NOTICE.md`. Use anonymous writer IDs and keep evaluation
 writers out of training. Generated target lists are not committed; collected
 samples are committed only after consent.
 
