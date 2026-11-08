@@ -22,3 +22,16 @@ cargo run --release --manifest-path tools/eval/Cargo.toml -- \
 **This is not a generalization benchmark.** The Chinese Tomoe corpora have one
 sample per character, so these scores mostly confirm that the adapter and model
 paths work. A held-out set is still required for accuracy claims.
+
+For captured samples (same JSONL shape, with `source: "capture"` and `writer`):
+
+```sh
+cargo run --release --manifest-path tools/eval/Cargo.toml -- \
+  --data data/collected/zh_CN-w1.jsonl \
+  --models models/zinnia \
+  --language zh_CN \
+  --writer w1 \
+  --latency
+```
+
+Keep evaluation writers out of any training split.

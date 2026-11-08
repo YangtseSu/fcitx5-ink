@@ -18,6 +18,8 @@ struct Record {
     width: f32,
     height: f32,
     strokes: Vec<Vec<(f32, f32)>>,
+    writer: Option<String>,
+    source: Option<String>,
 }
 
 #[derive(Default)]
@@ -71,6 +73,7 @@ fn main() {
     let mut only = None;
     let mut limit = None;
     let mut latency = false;
+    let mut writer = None;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -86,6 +89,7 @@ fn main() {
                 )
             }
             "--latency" => latency = true,
+            "--writer" => writer = Some(args.next().expect("--writer needs an id")),
             other => {
                 eprintln!("unknown argument: {other}");
                 std::process::exit(2);
@@ -98,6 +102,7 @@ fn main() {
         std::process::exit(1);
     });
     let mut totals: BTreeMap<&'static str, Counts> = BTreeMap::new();
+    let mut captured = false;
     for line in BufReader::new(file).lines() {
         let line = line.expect("read JSONL");
         if line.trim().is_empty() {
@@ -107,6 +112,14 @@ fn main() {
         let Some(language) = language(&record.language) else {
             continue;
         };
+        if let Some(filter) = writer.as_deref() {
+            if record.writer.as_deref() != Some(filter) {
+                continue;
+            }
+        }
+        if record.source.as_deref() == Some("capture") {
+            captured = true;
+        }
         if let Some(filter) = only.as_deref() {
             if language.code() != filter {
                 continue;
@@ -206,7 +219,13 @@ fn main() {
             );
         }
     }
-    eprintln!(
-        "note: these are Tomoe training samples, not a held-out generalization benchmark"
-    );
+    if captured {
+        eprintln!(
+            "note: captured samples; keep the evaluation writer(s) separate from training"
+        );
+    } else {
+        eprintln!(
+            "note: these are Tomoe training samples, not a held-out generalization benchmark"
+        );
+    }
 }
