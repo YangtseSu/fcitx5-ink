@@ -10,3 +10,5 @@
 packaging/arch/**/src/
 packaging/arch/**/pkg/
 packaging/arch/**/*.pkg.tar.zst
+packaging/arch/fcitx5-ink-git/fcitx5-ink-git/
+packaging/arch/fcitx5-ink-git/handwriting-zh_CN.model

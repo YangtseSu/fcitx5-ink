@@ -4,7 +4,7 @@
 # entry with git+https://github.com/YangtseSu/fcitx5-ink.git.
 
 pkgname=fcitx5-ink-git
-pkgver=0.1.0.r0.g0000000
+pkgver=0.1.0.r1.ge879ef3
 pkgrel=1
 pkgdesc="Handwriting input method for fcitx5 with a GTK4 panel (git)"
 arch=('x86_64' 'aarch64')
@@ -15,7 +15,7 @@ makedepends=('cmake' 'rust' 'nlohmann-json' 'pkgconf' 'python' 'git')
 optdepends=('fcitx5-configtool: add Ink to the input method group')
 provides=('fcitx5-ink')
 conflicts=('fcitx5-ink')
-source=("$pkgname::git+file://$startdir/../.."
+source=("$pkgname::git+file://$startdir/../../.."
         "handwriting-zh_CN.model::https://raw.githubusercontent.com/metasequoiaime/msime-engine/a9b9f092219505166c927843762b650d1e0e501d/handwriting/models/handwriting-zh_CN.model")
 sha256sums=('SKIP' 'e16153d1ff267cd479aea260d6f71a3edda8b4ba06db2d121513adda65a4449e')
 
