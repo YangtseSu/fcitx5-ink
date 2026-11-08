@@ -43,6 +43,8 @@ Deliverables:
 - [ ] Compact CNN adapter (experimental).
 - [ ] A held-out set with a documented split; no within-character leakage.
 - [x] Baseline report on the Tomoe training samples (sanity check only).
+- [x] Latency and model-size probe for the Zinnia models.
+- [x] Minimal local capture tool and target-list generator.
 - [ ] A held-out report with top-1/top-5/top-12, latency and model size.
 
 Acceptance:

@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 #[derive(Debug, Deserialize)]
 struct Record {
@@ -25,6 +26,8 @@ struct Counts {
     top1: u64,
     top5: u64,
     top12: u64,
+    latencies: Vec<f64>,
+    model_bytes: u64,
     failures: Vec<Failure>,
 }
 
@@ -67,6 +70,7 @@ fn main() {
     let mut models = PathBuf::from("models/zinnia");
     let mut only = None;
     let mut limit = None;
+    let mut latency = false;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -81,6 +85,7 @@ fn main() {
                         .expect("--limit must be a number"),
                 )
             }
+            "--latency" => latency = true,
             other => {
                 eprintln!("unknown argument: {other}");
                 std::process::exit(2);
@@ -115,8 +120,16 @@ fn main() {
         }
         counts.samples += 1;
         let model = model_path(&models, language);
+        if counts.model_bytes == 0 {
+            counts.model_bytes = std::fs::metadata(&model).map_or(0, |item| item.len());
+        }
         let strokes = scale(&record);
-        match recognize(&model, &strokes, language) {
+        let started = Instant::now();
+        let result = recognize(&model, &strokes, language);
+        counts
+            .latencies
+            .push(started.elapsed().as_secs_f64() * 1000.0);
+        match result {
             Ok(candidates) => {
                 let position = candidates.iter().position(|item| item == &record.character);
                 if position == Some(0) {
@@ -142,8 +155,13 @@ fn main() {
         }
     }
 
-    println!("| Language | Samples | Top-1 | Top-5 | Top-12 |");
-    println!("|---|---:|---:|---:|---:|");
+    if latency {
+        println!("| Language | Samples | Top-1 | Top-5 | Top-12 | Median ms | P95 ms | Model MB |");
+        println!("|---|---:|---:|---:|---:|---:|---:|---:|");
+    } else {
+        println!("| Language | Samples | Top-1 | Top-5 | Top-12 |");
+        println!("|---|---:|---:|---:|---:|");
+    }
     for (language, counts) in &totals {
         let percent = |value: u64| {
             if counts.samples == 0 {
@@ -152,13 +170,33 @@ fn main() {
                 value as f64 * 100.0 / counts.samples as f64
             }
         };
-        println!(
-            "| {language} | {} | {:.2}% | {:.2}% | {:.2}% |",
-            counts.samples,
-            percent(counts.top1),
-            percent(counts.top5),
-            percent(counts.top12)
-        );
+        if latency {
+            let mut values = counts.latencies.clone();
+            values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            let median = values.get(values.len() / 2).copied().unwrap_or(0.0);
+            let p95 = values
+                .get((values.len() * 95 / 100).min(values.len().saturating_sub(1)))
+                .copied()
+                .unwrap_or(0.0);
+            println!(
+                "| {language} | {} | {:.2}% | {:.2}% | {:.2}% | {:.2} | {:.2} | {:.1} |",
+                counts.samples,
+                percent(counts.top1),
+                percent(counts.top5),
+                percent(counts.top12),
+                median,
+                p95,
+                counts.model_bytes as f64 / 1_000_000.0
+            );
+        } else {
+            println!(
+                "| {language} | {} | {:.2}% | {:.2}% | {:.2}% |",
+                counts.samples,
+                percent(counts.top1),
+                percent(counts.top5),
+                percent(counts.top12)
+            );
+        }
         for failure in &counts.failures {
             eprintln!(
                 "  {language} {} expected {} got {}",

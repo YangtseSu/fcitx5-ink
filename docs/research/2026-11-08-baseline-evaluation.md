@@ -30,6 +30,20 @@ Points are clamped to the record canvas, matching the panel's
 Raw outputs: `reports/eval-zh_CN.txt`, `reports/eval-zh_TW.txt`,
 `reports/eval-ja.txt`.
 
+## Latency and model size
+
+500 samples per language, single-threaded CPU, including the first-call model
+load:
+
+| Language | Median | P95 | Model |
+|---|---:|---:|---:|
+| Simplified Chinese | 14.24 ms | 18.77 ms | 26.8 MB |
+| Traditional Chinese | 29.14 ms | 38.36 ms | 52.2 MB |
+| Japanese | 14.13 ms | 18.63 ms | 26.1 MB |
+
+Raw output: `reports/latency.txt`. These are Zinnia CPU numbers; a neural ONNX
+model must be compared on the same machine before it can replace Zinnia.
+
 ## How to read this
 
 **These samples are the training data.** The scores verify that the adapter,

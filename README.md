@@ -19,11 +19,24 @@ docs/
 data/
   tomoe/          online stroke corpora: ja, zh_CN, zh_TW (LGPL-2.1)
   manifests/      pinned URLs, sizes and SHA-256 for data and models
+  capture/        generated target-character lists
+  collected/      local captured samples; ignored by Git
 models/           fetched models; ignored by Git
-scripts/          fetch, verify, convert, evaluate
+scripts/          fetch, verify, convert, evaluate, make capture lists
+tools/            capture UI and Zinnia evaluation adapter
 reports/          generated statistics and evaluation results
 experiments/      training configurations and run records
 ```
+
+Capture a held-out evaluation sample locally:
+
+```sh
+python3 scripts/make_capture_list.py --language zh_CN --limit 300
+python3 tools/capture/capture.py --language zh_CN --writer w1 \
+  --characters data/capture/zh_CN.txt
+```
+
+Collected samples stay under `data/collected/` and are ignored by Git.
 
 ## Quick start
 

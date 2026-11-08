@@ -61,6 +61,30 @@ SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
 [[annotations]]
+path = "tools/capture/README.md"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "data/capture/README.md"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "data/collected/README.md"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "reports/latency.txt"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
 path = "tools/eval/Cargo.toml"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
