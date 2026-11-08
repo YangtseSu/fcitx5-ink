@@ -54,6 +54,12 @@ Acceptance:
 - The report records model and dataset hashes.
 - Tomoe training-sample results are labelled as a sanity check, not accuracy.
 
+## Related plans
+
+- `002-makemeahanzi-coverage.md` — short-term character coverage.
+- `003-neural-recognizer.md` — mid-term compact neural recognizer.
+- `004-user-data-loop.md` — long-term consented user data.
+
 ## Phase 2: stroke augmentation + Zinnia retraining
 
 Deliverables:

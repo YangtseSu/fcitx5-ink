@@ -27,7 +27,9 @@ Compiled models are not committed. `scripts/fetch-models.sh` downloads them into
 
 - `manifests/tomoe.json`: committed source data;
 - `manifests/tegaki-models.json`: Zinnia models used by fcitx5-ink;
-- `manifests/wagomu.json`: Wagomu engine and model releases for comparison.
+- `manifests/wagomu.json`: Wagomu engine and model releases for comparison;
+- `manifests/makemeahanzi.json`: Make Me a Hanzi median trajectories
+  (Arphic-1999), fetched by `scripts/fetch_mmh.py`.
 
 ## Licenses
 

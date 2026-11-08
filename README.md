@@ -58,6 +58,15 @@ samples are committed only after consent.
 ./scripts/verify-data.sh
 ./scripts/fetch-models.sh
 ./scripts/dataset-stats.py
+
+# short-term coverage work
+./scripts/fetch_mmh.py
+./scripts/mmh_coverage.py
+./scripts/tomoe_to_zinnia.py --xml data/tomoe/handwriting-zh_CN.xml \
+  --out models/tomoe/zh_CN.s
+./scripts/mmh_to_zinnia.py \
+  --exclude-xml data/tomoe/handwriting-zh_CN.xml \
+  --out models/mmh/zh_CN-new.s
 ```
 
 `dataset-stats.py` parses the three Tomoe XML corpora and writes
@@ -69,7 +78,8 @@ Source data is committed when it is small enough and licensed for
 redistribution. Large compiled models are downloaded by script into
 `models/` and verified against `data/manifests/`; they are not committed.
 
-The Tomoe XML corpora are LGPL-2.1-or-later. The compiled Zinnia and Wagomu
+The Tomoe XML corpora are LGPL-2.1-or-later; Make Me a Hanzi medians are
+Arphic-1999. The compiled Zinnia and Wagomu
 models retain their own licenses; the model license text is installed with the
 model data package. Do not mix share-alike corpora (for example KanjiVG,
 CC BY-SA) into a model whose license cannot carry the same terms.

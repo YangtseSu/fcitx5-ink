@@ -1,0 +1,18 @@
+{
+  "source": "https://github.com/skishore/makemeahanzi",
+  "license": "Arphic-1999",
+  "files": [
+    {
+      "name": "graphics.txt",
+      "url": "https://raw.githubusercontent.com/skishore/makemeahanzi/master/graphics.txt",
+      "size": 30778076,
+      "sha256": "a28c478b5178e98f67f510b2d52fde08a69dc664654ef43498253b9b764d46ee"
+    },
+    {
+      "name": "COPYING",
+      "url": "https://raw.githubusercontent.com/skishore/makemeahanzi/master/COPYING",
+      "size": 1016,
+      "sha256": "26fa6b699b32401de4b75a4af574c2e0a99b3df6cb12df9313d257ee4634359c"
+    }
+  ]
+}
