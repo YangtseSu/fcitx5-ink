@@ -1,0 +1,12 @@
+[package]
+name = "fcitx5-ink-panel"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.89"
+license = "GPL-3.0-or-later"
+description = "GTK4 handwriting panel for fcitx5-ink"
+
+
+[dependencies]
+gtk = { package = "gtk4", version = "0.11" }
+fcitx5-ink-core = { path = "../core" }

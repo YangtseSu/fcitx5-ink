@@ -1,0 +1,12 @@
+/build/
+/build-*/
+/target/
+/src/
+/pkg/
+/handwriting-zh_CN.model
+
+/package.tar.zst
+/*.pkg.tar.zst
+packaging/arch/**/src/
+packaging/arch/**/pkg/
+packaging/arch/**/*.pkg.tar.zst
