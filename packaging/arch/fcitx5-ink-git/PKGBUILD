@@ -4,7 +4,7 @@
 # entry with git+https://github.com/YangtseSu/fcitx5-ink.git.
 
 pkgname=fcitx5-ink-git
-pkgver=0.1.0.r1.ge879ef3
+pkgver=0.1.0.r0.g0000000
 pkgrel=1
 pkgdesc="Handwriting input method for fcitx5 with a GTK4 panel (git)"
 arch=('x86_64' 'aarch64')
