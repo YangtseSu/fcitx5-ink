@@ -13,6 +13,6 @@ mod handwriting;
 
 pub use error::{EngineError, Result};
 pub use handwriting::{
-    contains_cjk, handwriting_recognize, handwriting_recognize_ranked,
+    contains_cjk, extract_feature_nodes, handwriting_recognize, handwriting_recognize_ranked,
     order_handwriting_candidates, MAX_CANDIDATES, MAX_CANDIDATE_BYTES,
 };

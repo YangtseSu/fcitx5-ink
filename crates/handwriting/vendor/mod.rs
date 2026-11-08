@@ -11,6 +11,19 @@ mod recognizer;
 #[cfg(not(target_os = "android"))]
 pub use recognizer::{handwriting_recognize, handwriting_recognize_ranked};
 
+/// The sparse feature vector for a character on a square canvas, exposed for
+/// the offline trainer. This is the same feature extraction the recognizer
+/// uses; it does not change recognition behavior.
+#[cfg(not(target_os = "android"))]
+pub fn extract_feature_nodes(strokes: &[Vec<(i32, i32)>], size: u32) -> Option<Vec<(i32, f32)>> {
+    features::extract(strokes, size).map(|nodes| {
+        nodes
+            .into_iter()
+            .map(|node| (node.index, node.value))
+            .collect()
+    })
+}
+
 pub const MAX_CANDIDATES: usize = 12;
 pub const MAX_CANDIDATE_BYTES: usize = 4_096;
 

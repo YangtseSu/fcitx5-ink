@@ -24,8 +24,9 @@ platform directory.
 `metasequoiaime/msime` commit `a2365adbad` (`develop`), with one additive
 change: `recognizer.rs` also exports `handwriting_recognize_ranked`, which
 returns labels in model score order so Japanese kana are not moved behind every
-Han candidate. The existing `handwriting_recognize` still applies msime's
-Chinese candidate policy.
+Han candidate, and `mod.rs` exports `extract_feature_nodes` for the offline
+trainer. The existing `handwriting_recognize` still applies msime's Chinese
+candidate policy.
 
 `crates/handwriting/src/lib.rs` is the crate root that wraps the vendor module:
 it provides the `handwriting` module path, the `EngineError`/`Result` re-export
