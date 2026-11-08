@@ -67,6 +67,9 @@ samples are committed only after consent.
 ./scripts/mmh_to_zinnia.py \
   --exclude-xml data/tomoe/handwriting-zh_CN.xml \
   --out models/mmh/zh_CN-new.s
+./scripts/mmh_to_zinnia.py \
+  --only-xml data/tomoe/handwriting-zh_CN.xml \
+  --out models/mmh/zh_CN-second.s
 ```
 
 `dataset-stats.py` parses the three Tomoe XML corpora and writes

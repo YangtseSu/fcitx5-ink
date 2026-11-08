@@ -17,6 +17,8 @@ project, not an accuracy project for existing common characters.
 - [x] Add `scripts/tomoe_to_zinnia.py` and `scripts/mmh_to_zinnia.py`.
 - [x] Reproduce the coverage numbers with `scripts/mmh_coverage.py`.
 - [x] Generate a zh_CN new-class set (2,811 characters) locally.
+- [x] Generate a second canonical sample for the existing 6,763 zh_CN classes
+  with `--only-xml` (local, ignored).
 
 Coverage:
 
@@ -54,10 +56,18 @@ Coverage:
      --out models/mmh/zh_CN-new.s
    ```
 4. Train a model that combines `zh_CN.s` + `zh_CN-new.s`.
-5. Smoke test in `fcitx5-ink-panel`: common characters still work, new classes
+5. A/B experiment for a second canonical sample per existing class:
+   ```sh
+   ./scripts/mmh_to_zinnia.py --only-xml data/tomoe/handwriting-zh_CN.xml \
+     --out models/mmh/zh_CN-second.s
+   ```
+   Train Tomoe-only vs Tomoe + MMH-second and compare model size, latency and
+   real-script behavior. This is not a second human writing style; it is a
+   font-derived second trajectory.
+6. Smoke test in `fcitx5-ink-panel`: common characters still work, new classes
    can be emitted.
-6. Record model size, latency and class count.
-7. Optional: repeat for zh_TW after checking demand. Do not use MMH as the
+7. Record model size, latency and class count.
+8. Optional: repeat for zh_TW after checking demand. Do not use MMH as the
    Japanese source; use AnimCJK/Tomoe for Japanese forms.
 
 ## Acceptance
@@ -67,6 +77,23 @@ Coverage:
 - Model size and latency are recorded; an increase above the agreed budget is
   documented before shipping.
 - Arphic attribution and license notice are included.
+
+## Trainer decision
+
+Zinnia's last upstream commit is from 2016 (about ten years old at the time of
+writing). The runtime used by fcitx5-ink is already a Rust port; only the batch
+trainer is old.
+
+Do not rewrite the trainer before the coverage experiment. First build and pin
+upstream zinnia 0.07 (`zinnia_learn`) in a clean environment. Rewrite only if:
+
+- it no longer builds on a supported toolchain;
+- we need sample weights, parallel training or reproducible CI training;
+- we need to generate the same model format without a C++ build dependency.
+
+A future Rust trainer can reuse the vendored feature extraction and emit the
+same Zinnia model format, but it must be validated against `zinnia_learn` on a
+small corpus. That is a separate project, not part of this coverage change.
 
 ## Risks
 

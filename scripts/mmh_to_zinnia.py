@@ -17,7 +17,7 @@ DEFAULT_MMH = ROOT / "models" / "makemeahanzi" / "graphics.txt"
 CANVAS = 1024
 
 
-def excluded(xml_paths):
+def classes_from(xml_paths):
     classes = set()
     for path in xml_paths:
         root = ET.parse(path).getroot()
@@ -56,9 +56,14 @@ def main():
         "--exclude-xml", type=Path, action="append", default=[],
         help="Tomoe XML whose classes should not be emitted; repeatable",
     )
+    parser.add_argument(
+        "--only-xml", type=Path, action="append", default=[],
+        help="emit only classes present in these Tomoe XML files; repeatable",
+    )
     parser.add_argument("--limit", type=int)
     args = parser.parse_args()
-    skip = excluded(args.exclude_xml)
+    skip = classes_from(args.exclude_xml)
+    include = classes_from(args.only_xml)
     count = 0
     skipped = 0
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -73,6 +78,8 @@ def main():
             character = item.get("character")
             medians = item.get("medians") or []
             if not character or len(character) != 1 or not medians:
+                continue
+            if include and character not in include:
                 continue
             if character in skip:
                 skipped += 1
