@@ -24,8 +24,8 @@ Deliverables:
 - [x] Commit Tomoe XML corpora (`ja`, `zh_CN`, `zh_TW`) with LGPL notices.
 - [x] Pin current models and Wagomu releases in manifests.
 - [x] Document the Hugging Face/ModelScope license survey.
-- [ ] Add a machine-readable class/sample inventory and generated report.
-- [ ] Decide whether source XMLs stay in Git or move to release assets.
+- [x] Add a machine-readable class/sample inventory and generated report.
+- [x] Source XMLs stay in Git; compiled models are fetched and checksum-verified.
 
 Acceptance:
 
@@ -37,19 +37,20 @@ Acceptance:
 
 Deliverables:
 
-- A common normalization and JSONL conversion for online strokes.
-- Adapters for:
-  1. current Zinnia models;
-  2. Wagomu (offline evaluation only);
-  3. the compact CNN checkpoint (experimental).
-- A held-out set with a documented split; no within-character leakage.
-- A report with top-1/top-5/top-12, latency and model size.
+- [x] A common normalization and JSONL conversion for online strokes.
+- [x] Zinnia adapter using the same core crate as the panel.
+- [ ] Wagomu adapter (offline evaluation only).
+- [ ] Compact CNN adapter (experimental).
+- [ ] A held-out set with a documented split; no within-character leakage.
+- [x] Baseline report on the Tomoe training samples (sanity check only).
+- [ ] A held-out report with top-1/top-5/top-12, latency and model size.
 
 Acceptance:
 
 - The same sample produces a comparable result from each adapter.
 - Zinnia baseline numbers are reproducible from a clean checkout.
 - The report records model and dataset hashes.
+- Tomoe training-sample results are labelled as a sanity check, not accuracy.
 
 ## Phase 2: stroke augmentation + Zinnia retraining
 
