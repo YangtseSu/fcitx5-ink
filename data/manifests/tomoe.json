@@ -1,0 +1,21 @@
+{
+  "source": "https://github.com/tegaki/tegaki/releases/tag/v0.3",
+  "license": "LGPL-2.1-or-later",
+  "files": [
+    {
+      "name": "handwriting-zh_CN.xml",
+      "size": 8751834,
+      "sha256": "969862706c883c89ae6b945549b141e0051847930e04d8fa8a26aad2b3d4db11"
+    },
+    {
+      "name": "handwriting-zh_TW.xml",
+      "size": 24523156,
+      "sha256": "85ab37c56bcb14a54a7ae106f2504b6505cf6c9917ca8c636312153fd9d00e53"
+    },
+    {
+      "name": "handwriting-ja.xml",
+      "size": 9155641,
+      "sha256": "6f30a4f42f24dc611f1a3e4d7a220c5009bb0323f237f01f50e3be3dfefb11f8"
+    }
+  ]
+}

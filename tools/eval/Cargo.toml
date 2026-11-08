@@ -1,0 +1,11 @@
+[package]
+name = "fcitx5-ink-eval"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Evaluate the fcitx5-ink Zinnia recognizer on normalized Tomoe JSONL"
+
+[dependencies]
+fcitx5-ink-core = { path = "../../../fcitx5-ink/crates/core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

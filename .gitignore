@@ -1,0 +1,8 @@
+/models/*
+!/models/.gitkeep
+!/models/README.md
+/reports/*.jsonl
+__pycache__/
+*.pyc
+/experiments/**/runs/
+/tools/eval/target/
