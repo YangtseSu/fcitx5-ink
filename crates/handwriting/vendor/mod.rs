@@ -9,7 +9,7 @@ mod model;
 mod recognizer;
 
 #[cfg(not(target_os = "android"))]
-pub use recognizer::handwriting_recognize;
+pub use recognizer::{handwriting_recognize, handwriting_recognize_ranked};
 
 pub const MAX_CANDIDATES: usize = 12;
 pub const MAX_CANDIDATE_BYTES: usize = 4_096;

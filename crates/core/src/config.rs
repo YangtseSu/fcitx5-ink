@@ -7,6 +7,7 @@
 //! Parsing is strict: a malformed file or an out-of-range panel value is an
 //! error instead of a silent partial fallback.
 
+use crate::model::Language;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::ffi::OsStr;
@@ -27,6 +28,8 @@ const MODIFIERS: [&str; 5] = ["Shift", "Control", "Alt", "Super", "Hyper"];
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PanelConfig {
+    #[serde(default)]
+    pub language: Language,
     #[serde(default = "default_stroke_width")]
     pub stroke_width: u8,
     #[serde(default = "default_max_candidates")]
@@ -36,6 +39,7 @@ pub struct PanelConfig {
 impl Default for PanelConfig {
     fn default() -> Self {
         Self {
+            language: Language::default(),
             stroke_width: default_stroke_width(),
             max_candidates: default_max_candidates(),
         }
@@ -280,6 +284,7 @@ mod tests {
         let config = parse("").unwrap();
         assert_eq!(config, Config::default());
         assert_eq!(config.hotkey, "Control+Alt+H");
+        assert_eq!(config.panel.language, Language::SimplifiedChinese);
         assert_eq!(config.panel.stroke_width, 3);
         assert_eq!(config.panel.max_candidates, 9);
     }
@@ -291,12 +296,14 @@ mod tests {
 hotkey = "  Control+Alt+J  "
 
 [panel]
+language = "zh_TW"
 stroke_width = 5
 max_candidates = 12
 "#,
         )
         .unwrap();
         assert_eq!(config.hotkey, "Control+Alt+J");
+        assert_eq!(config.panel.language, Language::TraditionalChinese);
         assert_eq!(config.panel.stroke_width, 5);
         assert_eq!(config.panel.max_candidates, 12);
     }
@@ -352,6 +359,7 @@ max_candidates = 12
         for text in [
             "[panel]\nstroke_width = 0\n",
             "[panel]\nstroke_width = 9\n",
+            "[panel]\nlanguage = \"en\"\n",
             "[panel]\nstroke_width = nan\n",
             "[panel]\nstroke_width = 3.5\n",
             "[panel]\nmax_candidates = 0\n",
@@ -384,6 +392,7 @@ max_candidates = 12
         let config = Config {
             hotkey: "Control+Alt+K".to_owned(),
             panel: PanelConfig {
+                language: Language::Japanese,
                 stroke_width: 4,
                 max_candidates: 6,
             },

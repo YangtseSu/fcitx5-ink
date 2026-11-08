@@ -7,7 +7,7 @@ use editor::InkEditor;
 use fcitx5_ink_core::{config, model, recognize, socket};
 use gtk::prelude::*;
 use gtk::{
-    gdk, glib, Application, ApplicationWindow, Box as GtkBox, Button, DrawingArea, Entry,
+    gdk, glib, Application, ApplicationWindow, Box as GtkBox, Button, DrawingArea, DropDown, Entry,
     EventControllerKey, FlowBox, HeaderBar, Label, Orientation, SpinButton, Window,
 };
 use recognition::{Finish, RecognitionState, Start};
@@ -31,7 +31,7 @@ struct Ink {
 
 struct Paths {
     socket: PathBuf,
-    model: Option<PathBuf>,
+    explicit_model: Option<PathBuf>,
 }
 
 #[derive(Clone)]
@@ -68,12 +68,14 @@ fn main() {
     // this panel instead of the editor that was focused before it opened.
     env::set_var("GTK_IM_MODULE", "gtk-im-context-simple");
 
-    let model = model::discover(args.model.as_deref());
+    let mut settings = config::load();
+    if let Some(language) = args.language {
+        settings.panel.language = language;
+    }
     let paths = Rc::new(Paths {
         socket: args.socket,
-        model,
+        explicit_model: args.model,
     });
-    let settings = config::load();
     let app = Application::builder()
         .application_id("app.fcitx5.Ink")
         .build();
@@ -90,6 +92,7 @@ fn parse_args() -> Result<Args, String> {
     let mut socket = socket::default_path()
         .ok_or_else(|| "XDG_RUNTIME_DIR must be an absolute path".to_owned())?;
     let mut model = None;
+    let mut language = None;
     let mut self_test = false;
     let mut arguments = env::args().skip(1);
     while let Some(argument) = arguments.next() {
@@ -108,9 +111,20 @@ fn parse_args() -> Result<Args, String> {
                         .ok_or_else(|| "--model needs a path".to_owned())?,
                 ));
             }
+            "--language" => {
+                let value = arguments
+                    .next()
+                    .ok_or_else(|| "--language needs a code".to_owned())?;
+                language = Some(
+                    model::Language::from_code(&value)
+                        .ok_or_else(|| format!("unknown language: {value}"))?,
+                );
+            }
             "--self-test" => self_test = true,
             "--help" | "-h" => {
-                println!("Usage: fcitx5-ink-panel [--socket PATH] [--model PATH] [--self-test]");
+                println!(
+                    "Usage: fcitx5-ink-panel [--socket PATH] [--model PATH]                      [--language zh_CN|zh_TW|ja] [--self-test]"
+                );
                 std::process::exit(0);
             }
             other => return Err(format!("unknown argument: {other}")),
@@ -119,6 +133,7 @@ fn parse_args() -> Result<Args, String> {
     Ok(Args {
         socket,
         model,
+        language,
         self_test,
     })
 }
@@ -126,22 +141,37 @@ fn parse_args() -> Result<Args, String> {
 struct Args {
     socket: PathBuf,
     model: Option<PathBuf>,
+    language: Option<model::Language>,
     self_test: bool,
 }
 
 fn run_self_test(args: &Args) -> i32 {
-    let Some(model) = model::discover(args.model.as_deref()) else {
-        eprintln!("handwriting model not found");
+    let language = args.language.unwrap_or_default();
+    let Some(model) = model::discover(args.model.as_deref(), language) else {
+        eprintln!("{} not found", language.model_name());
         return 1;
     };
-    match recognize::recognize(&model, &recognize::zhong_fixture()) {
-        Ok(candidates) if !candidates.is_empty() => {
+    let expected = recognize::fixture_character(language);
+    match recognize::recognize(&model, &recognize::fixture(language), language) {
+        Ok(candidates) if candidates.first().map(String::as_str) == Some(expected) => {
             println!("model: {}", model.display());
+            println!("language: {expected} ({})", language.code());
             println!("candidates: {}", candidates.join(" "));
             0
         }
+        Ok(candidates) if !candidates.is_empty() => {
+            eprintln!(
+                "expected {expected} first for {}; got {}",
+                language.code(),
+                candidates.join(" ")
+            );
+            1
+        }
         Ok(_) => {
-            eprintln!("recognizer returned no candidates for the 中 fixture");
+            eprintln!(
+                "recognizer returned no candidates for {expected} ({})",
+                language.code()
+            );
             1
         }
         Err(error) => {
@@ -465,9 +495,10 @@ impl Ui {
             self.sync_actions();
             return;
         }
-        let Some(model) = self.paths.model.clone() else {
+        let language = self.settings.borrow().panel.language;
+        let Some(model) = model::discover(self.paths.explicit_model.as_deref(), language) else {
             self.ink.borrow_mut().recognition.cancel();
-            self.set_status("未找到 handwriting-zh_CN.model");
+            self.set_status(&format!("未找到 {}", language.model_name()));
             self.sync_actions();
             return;
         };
@@ -475,17 +506,23 @@ impl Ui {
         match start {
             Start::Start(generation) => {
                 self.set_status("识别中…");
-                self.start_recognition(generation, strokes, model);
+                self.start_recognition(generation, strokes, model, language);
             }
             Start::AlreadyRunning => self.set_status("识别中…"),
         }
         self.sync_actions();
     }
 
-    fn start_recognition(&self, generation: u64, strokes: Vec<Vec<(f32, f32)>>, model: PathBuf) {
+    fn start_recognition(
+        &self,
+        generation: u64,
+        strokes: Vec<Vec<(f32, f32)>>,
+        model: PathBuf,
+        language: model::Language,
+    ) {
         let (sender, receiver) = mpsc::channel();
         std::thread::spawn(move || {
-            let _ = sender.send(recognize::recognize(&model, &strokes));
+            let _ = sender.send(recognize::recognize(&model, &strokes, language));
         });
         let ui = self.clone();
         glib::timeout_add_local(Duration::from_millis(40), move || {
@@ -515,13 +552,15 @@ impl Ui {
             },
             Finish::Restart(next) => {
                 let strokes = self.ink.borrow().editor.strokes().to_vec();
-                let Some(model) = self.paths.model.clone() else {
+                let language = self.settings.borrow().panel.language;
+                let Some(model) = model::discover(self.paths.explicit_model.as_deref(), language)
+                else {
                     self.ink.borrow_mut().recognition.cancel();
-                    self.set_status("未找到 handwriting-zh_CN.model");
+                    self.set_status(&format!("未找到 {}", language.model_name()));
                     return;
                 };
                 self.set_status("识别中…");
-                self.start_recognition(next, strokes, model);
+                self.start_recognition(next, strokes, model, language);
             }
             Finish::Ignore => {}
         }
@@ -682,6 +721,18 @@ impl Ui {
             root.append(&note);
         }
 
+        let languages: Vec<&str> = model::Language::ALL
+            .iter()
+            .map(|language| language.label())
+            .collect();
+        let language = DropDown::from_strings(&languages);
+        let selected = model::Language::ALL
+            .iter()
+            .position(|value| *value == current.panel.language)
+            .unwrap_or(0);
+        language.set_selected(selected as u32);
+        root.append(&settings_row("手写语言", &language));
+
         let width = SpinButton::with_range(
             f64::from(config::MIN_STROKE_WIDTH),
             f64::from(config::MAX_STROKE_WIDTH),
@@ -729,6 +780,10 @@ impl Ui {
             }
             let mut next = ui.settings.borrow().clone();
             next.hotkey = hotkey;
+            next.panel.language = model::Language::ALL
+                .get(language.selected() as usize)
+                .copied()
+                .unwrap_or_default();
             next.panel.stroke_width = width.value().round().clamp(
                 f64::from(config::MIN_STROKE_WIDTH),
                 f64::from(config::MAX_STROKE_WIDTH),
@@ -763,12 +818,27 @@ impl Ui {
             glib::timeout_add_local(Duration::from_millis(40), move || {
                 match receiver.try_recv() {
                     Ok(SaveOutcome::Saved { warning }) => {
+                        let previous_language = ui.settings.borrow().panel.language;
                         *ui.settings.borrow_mut() = next.clone();
                         ui.canvas.queue_draw();
-                        ui.render_candidates();
-                        match warning {
-                            Some(warning) => ui.set_status(&warning),
-                            None => ui.set_status("设置已保存"),
+                        let mut model_missing = false;
+                        if previous_language != next.panel.language {
+                            model_missing = model::discover(
+                                ui.paths.explicit_model.as_deref(),
+                                next.panel.language,
+                            )
+                            .is_none();
+                            ui.refresh_recognition();
+                        } else {
+                            ui.render_candidates();
+                        }
+                        if model_missing {
+                            ui.set_status(&format!("未找到 {}", next.panel.language.model_name()));
+                        } else {
+                            match warning {
+                                Some(warning) => ui.set_status(&warning),
+                                None => ui.set_status("设置已保存"),
+                            }
                         }
                         settings_window.close();
                         glib::ControlFlow::Break

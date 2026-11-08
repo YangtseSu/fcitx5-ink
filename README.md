@@ -11,31 +11,33 @@ platform directory.
   syntax such as `Super+i` is accepted.
 - **Settings:** stored in `$XDG_CONFIG_HOME/fcitx5-ink/config.toml`; the addon
   reloads the hotkey through its socket when the panel saves.
+- **Languages:** Japanese, Simplified Chinese and Traditional Chinese
+  handwriting models are bundled. Choose the recognition language in 设置.
 - **Usage:** press the hotkey; no input method entry or switch is involved.
   Ink does not appear in `fcitx5-configtool` and cannot be added to a group.
 
 ## Layout: crates/handwriting
 
-`crates/handwriting/vendor/` is a byte-identical copy of
+`crates/handwriting/vendor/` is the `handwriting` module from
 `msime/crates/engine/src/handwriting/`, including `features.rs`, `mod.rs`,
 `model.rs`, `recognizer.rs`, and `testdata/`. It is pinned from
-`metasequoiaime/msime` commit `a2365adbad` (`develop`); the model lock is
-`resources/handwriting-model.lock.json`.
+`metasequoiaime/msime` commit `a2365adbad` (`develop`), with one additive
+change: `recognizer.rs` also exports `handwriting_recognize_ranked`, which
+returns labels in model score order so Japanese kana are not moved behind every
+Han candidate. The existing `handwriting_recognize` still applies msime's
+Chinese candidate policy.
 
 `crates/handwriting/src/lib.rs` is the crate root that wraps the vendor module:
 it provides the `handwriting` module path, the `EngineError`/`Result` re-export
 and the `paths::open_file_no_follow` seam that the upstream module expects.
-There is no overlay directory: add the wrapper or a real patch only when the
-upstream code cannot be used unchanged.
 
-To re-vendor, copy the upstream directory over `crates/handwriting/vendor/`
-and verify:
+To re-vendor, copy the upstream directory over `crates/handwriting/vendor/`,
+re-add the ranked function from the current `recognizer.rs` and its `mod.rs`
+export, then verify that no other difference remains:
 
 ```sh
 diff -r /path/to/msime/crates/engine/src/handwriting crates/handwriting/vendor
 ```
-
-The diff must be empty.
 
 Project code is at the root and in `crates/`:
 
@@ -43,7 +45,7 @@ Project code is at the root and in `crates/`:
 fcitx5-ink/
 ├── addon/       fcitx5 C++20 addon
 ├── crates/
-│   ├── handwriting/  recognizer crate; vendor/ is upstream, byte-identical
+│   ├── handwriting/  recognizer crate; vendor/ is upstream plus ranked output
 │   ├── core/         config, model discovery, recognition wrapper, panel IPC
 │   └── panel/        GTK4 panel, stroke history, settings
 ├── scripts/
@@ -85,8 +87,10 @@ Rust 1.89+, `nlohmann-json`, and the header-only `tomlplusplus` package.
 ./scripts/build.sh            # debug; pass --release for a release panel
 ```
 
-The model is the 26.8 MB zinnia `handwriting-zh_CN.model`. It is not committed;
-`fetch-model.sh` verifies its size and SHA-256 against
+The models are Tegaki 0.3 Zinnia files: `handwriting-ja.model` (26.1 MB),
+`handwriting-zh_CN.model` (26.8 MB) and `handwriting-zh_TW.model` (52.2 MB).
+They are not committed; `fetch-model.sh` downloads the pinned release archives,
+extracts each model, and verifies the extracted bytes against
 `resources/handwriting-model.lock.json`.
 
 ## Install
@@ -101,7 +105,10 @@ Installed files:
 /usr/bin/fcitx5-ink-panel
 /usr/lib/fcitx5/libfcitx5-ink.so
 /usr/share/fcitx5/addon/ink.conf
+/usr/share/fcitx5-ink/handwriting-ja.model
 /usr/share/fcitx5-ink/handwriting-zh_CN.model
+/usr/share/fcitx5-ink/handwriting-zh_TW.model
+/usr/share/fcitx5-ink/HandwritingModel-LICENSE.txt
 /usr/share/licenses/fcitx5-ink/
 ```
 
@@ -121,18 +128,31 @@ shortcuts while the panel is focused:
 
 ## Configure
 
-Open 设置 in the panel header. The window edits the hotkey, stroke width
-(1–8 px) and the number of visible candidates (1–12). Save validates the
-hotkey with fcitx5, writes the file atomically, and asks the addon to reload
-it. `config.toml` has this shape:
+Open 设置 in the panel header. The window edits the hotkey, recognition
+language, stroke width (1–8 px) and the number of visible candidates (1–12).
+Save validates the hotkey with fcitx5, writes the file atomically, and asks the
+addon to reload it. `config.toml` has this shape:
 
 ```toml
 hotkey = "Control+Alt+H"
 
 [panel]
+language = "zh_CN"
 stroke_width = 3
 max_candidates = 9
 ```
+
+The language is one of:
+
+| Code | Language | Model |
+|---|---|---|
+| `zh_CN` | 简体中文 | `handwriting-zh_CN.model` |
+| `zh_TW` | 繁體中文 | `handwriting-zh_TW.model` |
+| `ja` | 日本語 | `handwriting-ja.model` |
+
+Japanese recognition keeps the model's own score order, so kana and kanji are
+ranked together. Changing the language re-runs recognition on the current
+strokes. `FCITX5_INK_MODEL` overrides the selected model path for testing.
 
 Modifier names are case-sensitive: `Shift`, `Control`, `Alt`, `Super` and
 `Hyper`. A hotkey must contain at least one modifier. `FCITX5_INK_HOTKEY`
@@ -154,7 +174,8 @@ The test suite covers:
 - config parsing, hotkey validation, override precedence and atomic saves;
 - stroke history and recognition-generation tests for the panel;
 - the panel socket client's success and error paths;
-- a real recognition self-test (`中` is the first candidate);
+- real recognition self-tests for all three models (`中`, `馬` and `あ` come
+  first for their languages);
 - isolated `dbus-run-session` + `Xvfb` fcitx5 runs that verify a configured
   hotkey and socket reload, that selecting `ink` never opens the panel, and
   that the test client receives `TEXT:你` through the hotkey path.
@@ -173,15 +194,17 @@ makepkg -si
 ```
 
 It clones the parent repository, so commit the working tree first. For an AUR
-upload, replace its `git+file://$startdir/../..` source with
-`git+https://github.com/YangtseSu/fcitx5-ink.git`; the model source is already
-pinned. The root `PKGBUILD` is a local-source package; an AUR release package
+upload, replace its `git+file://$startdir/../../..` source with
+`git+https://github.com/YangtseSu/fcitx5-ink.git`; the model archives are
+already pinned. The root `PKGBUILD` is a local-source package; an AUR release package
 should use a release tarball source and checksum.
 
 ## Limits
 
 - One character per recognition. Multi-character cell segmentation is not
   part of the vendored module.
+- The Tegaki Japanese model covers hiragana and kanji; its label set includes
+  only a few katakana (イ, エ, オ, ジ, ラ, ン).
 - The panel owns focus and candidates; it does not use the fcitx5 candidate
   window.
 - Wayland window placement is controlled by the compositor; the panel does not
@@ -189,10 +212,28 @@ should use a release tarball source and checksum.
 - `handwriting-core` is GUI-independent. A future GPUI Kit frontend can reuse
   it and the same socket protocol without touching the addon.
 
+## Acknowledgements
+
+The project builds on two upstream layers:
+
+- [msime](https://github.com/metasequoiaime/msime) and
+  [msime-engine](https://github.com/metasequoiaime/msime-engine) — the
+  handwriting module under `crates/handwriting/vendor/` is their Rust port of
+  Zinnia, including the Chinese candidate policy and the original model
+  packaging.
+- [Tegaki](https://github.com/tegaki/tegaki) — the Japanese, Simplified Chinese
+  and Traditional Chinese Zinnia models are the Tegaki 0.3 release files.
+- [Zinnia](https://github.com/taku910/zinnia) by Taku Kudo — the original
+  handwriting recognizer and model reader, under BSD-3-Clause. Tegaki's models
+  use its format.
+
+Thanks to the Tegaki and Zinnia contributors whose recognizer and handwriting
+data made these models possible.
+
 ## License
 
 New code is GPL-3.0-or-later. The vendored handwriting module retains the
 msime-engine licenses: MPL-2.0 for the engine code, BSD-3-Clause for the
 Zinnia port, and GPL-3.0-only for the upstream test fixtures. The handwriting
-model is LGPL-2.1-or-later; its license is installed with the model and kept in
-`LICENSES/LGPL-2.1-or-later.txt`.
+models are LGPL-2.1-or-later; their license is installed beside them as
+`HandwritingModel-LICENSE.txt` and kept in `LICENSES/LGPL-2.1-or-later.txt`.

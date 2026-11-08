@@ -14,12 +14,12 @@ fi
 CARGO_TARGET_DIR="$root/target" cargo build $cargo_flags --workspace
 
 panel="$root/target/$profile/fcitx5-ink-panel"
-model="$root/target/handwriting-model/handwriting-zh_CN.model"
+model_dir="$root/target/handwriting-model"
 
-if [ -f "$model" ]; then
+if ls "$model_dir"/handwriting-*.model >/dev/null 2>&1; then
   cmake -S "$root" -B "$root/build" -DCMAKE_BUILD_TYPE=Release \
     -DFCITX5_INK_PANEL_BINARY="$panel" \
-    -DFCITX5_INK_MODEL="$model"
+    -DFCITX5_INK_MODEL_DIR="$model_dir"
 else
   cmake -S "$root" -B "$root/build" -DCMAKE_BUILD_TYPE=Release \
     -DFCITX5_INK_PANEL_BINARY="$panel"

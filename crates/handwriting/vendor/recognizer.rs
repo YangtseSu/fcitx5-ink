@@ -80,6 +80,37 @@ fn recognize(
     width: f32,
     height: f32,
 ) -> Result<Vec<String>> {
+    let ranked = raw_candidates(model, strokes, width, height)?;
+    let candidates: Vec<String> = ranked.into_iter().map(|(label, _)| label).collect();
+    Ok(order_handwriting_candidates(&candidates))
+}
+
+/// The classifier's labels and scores in model order, before
+/// `order_handwriting_candidates`. Chinese hosts use [`handwriting_recognize`];
+/// a Japanese model uses this so kana are not pushed behind every Han
+/// candidate.
+pub fn handwriting_recognize_ranked(
+    model_path: &str,
+    strokes: &[Vec<(f32, f32)>],
+    width: f32,
+    height: f32,
+) -> Result<Vec<(String, f32)>> {
+    let Some(used) = strokes.iter().rposition(|stroke| !stroke.is_empty()) else {
+        return Ok(Vec::new());
+    };
+    if model_path.is_empty() {
+        return Ok(Vec::new());
+    }
+    let model = load(Path::new(model_path))?;
+    raw_candidates(&model, &strokes[..=used], width, height)
+}
+
+fn raw_candidates(
+    model: &Model,
+    strokes: &[Vec<(f32, f32)>],
+    width: f32,
+    height: f32,
+) -> Result<Vec<(String, f32)>> {
     let Some(ink) = ink(strokes, width, height)? else {
         return Ok(Vec::new());
     };
@@ -88,12 +119,11 @@ fn recognize(
     }
     let features = features::extract(&ink, INK_CANVAS)
         .ok_or_else(|| EngineError::failed(RECOGNITION_FAILED))?;
-    let candidates: Vec<String> = model
+    Ok(model
         .classify(&features, NBEST)
         .into_iter()
-        .map(|(label, _)| label.to_owned())
-        .collect();
-    Ok(order_handwriting_candidates(&candidates))
+        .map(|(label, score)| (label.to_owned(), score))
+        .collect())
 }
 
 /// Validate the strokes and move the character's bounding box into zinnia's canvas without changing its aspect ratio. `None` for no strokes.
