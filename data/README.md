@@ -2,7 +2,8 @@
 
 ## Committed source data: Tomoe
 
-`data/tomoe/` contains the online stroke corpora from the Tegaki 0.3 release:
+`data/tomoe/` contains the Tomoe handwriting dictionary used by the Tegaki 0.3
+Zinnia models:
 
 | File | Language | SHA-256 |
 |---|---|---|
@@ -10,8 +11,12 @@
 | `handwriting-zh_TW.xml` | Traditional Chinese | `85ab37c56bcb14a54a7ae106f2504b6505cf6c9917ca8c636312153fd9d00e53` |
 | `handwriting-ja.xml` | Japanese | `6f30a4f42f24dc611f1a3e4d7a220c5009bb0323f237f01f50e3be3dfefb11f8` |
 
-These files are LGPL-2.1-or-later; `COPYING` is included. The stroke samples
-come from the Tomoe handwriting dictionary and were packaged by Tegaki.
+These files are LGPL-2.1-or-later; `COPYING` is included. `handwriting-ja.xml`
+and `handwriting-zh_CN.xml` are byte-identical to the Tomoe repository
+(<https://github.com/l4u/tomoe>) at commit
+`9d054a1f490368e0d45e0aff6430ce3598ab92c5`; `handwriting-zh_TW.xml` is the full
+Tomoe traditional Chinese dictionary. Tegaki packaged this data for its Zinnia
+models.
 
 The XML is the training input for Zinnia and for future online neural models.
 It is not a test set: Simplified and Traditional Chinese contain one sample per

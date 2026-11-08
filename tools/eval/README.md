@@ -6,9 +6,12 @@ Reads `reports/tomoe.jsonl` and calls the same recognizer crate used by
 The path dependency expects the sibling checkout:
 
 ```text
-~/projects/handwriting/fcitx5-ink
-~/projects/handwriting/fcitx5-ink-data
+<parent>/fcitx5-ink
+<parent>/fcitx5-ink-data
 ```
+
+Clone `fcitx5-ink` next to this repository; the parent directory name does not
+matter.
 
 Run from the data repository root:
 

@@ -19,6 +19,8 @@ project, not an accuracy project for existing common characters.
 - [x] Generate a zh_CN new-class set (2,811 characters) locally.
 - [x] Generate a second canonical sample for the existing 6,763 zh_CN classes
   with `--only-xml` (local, ignored).
+- [x] Implement `tools/ink-train`, a Rust port of `zinnia_learn` (same
+  features, coordinate descent and binary model format).
 
 Coverage:
 
@@ -31,7 +33,8 @@ Coverage:
 ## Missing prerequisites
 
 - **Zinnia trainer**: `zinnia_learn` is not installed and Arch does not provide
-  a `zinnia` package. Build zinnia 0.07 from source in a clean environment.
+  a `zinnia` package. `tools/ink-train` now replaces it for the coverage
+  experiment; upstream zinnia 0.07 is only needed for a parity comparison.
 - **Training compute**: a full 9.5k-class SVM is CPU-intensive; measure time and
   model size before committing to all classes.
 - **Model packaging**: the generated `.s` files and the trained model are
@@ -43,7 +46,8 @@ Coverage:
 
 ## Work
 
-1. Build zinnia 0.07 and verify `zinnia_learn` on a tiny model.
+1. Use `tools/ink-train` on a tiny corpus; optionally build zinnia 0.07 and
+   compare the upstream and Rust model outputs.
 2. Generate Tomoe S-expression files:
    ```sh
    ./scripts/tomoe_to_zinnia.py --xml data/tomoe/handwriting-zh_CN.xml \
@@ -55,7 +59,12 @@ Coverage:
      --exclude-xml data/tomoe/handwriting-zh_CN.xml \
      --out models/mmh/zh_CN-new.s
    ```
-4. Train a model that combines `zh_CN.s` + `zh_CN-new.s`.
+4. Train a model that combines `zh_CN.s` + `zh_CN-new.s`:
+   ```sh
+   cargo run --release --manifest-path tools/ink-train/Cargo.toml -- \
+     --out models/zinnia/zh_CN-coverage.model \
+     models/tomoe/zh_CN.s models/mmh/zh_CN-new.s
+   ```
 5. A/B experiment for a second canonical sample per existing class:
    ```sh
    ./scripts/mmh_to_zinnia.py --only-xml data/tomoe/handwriting-zh_CN.xml \
@@ -80,20 +89,21 @@ Coverage:
 
 ## Trainer decision
 
-Zinnia's last upstream commit is from 2016 (about ten years old at the time of
-writing). The runtime used by fcitx5-ink is already a Rust port; only the batch
-trainer is old.
+Zinnia's last upstream commit is from 2016 (about ten years old). The runtime
+used by fcitx5-ink is already a Rust port; only the batch trainer was old.
 
-Do not rewrite the trainer before the coverage experiment. First build and pin
-upstream zinnia 0.07 (`zinnia_learn`) in a clean environment. Rewrite only if:
+We now have a Rust trainer in `tools/ink-train`. It reads the official
+S-expression shape, reuses `extract_feature_nodes` from the recognizer, runs
+the same one-vs-rest coordinate descent (C=1, epsilon=0.1) and writes the
+binary model format. A 100-class smoke run and a two-class end-to-end test pass;
+a two-class model trained by upstream `zinnia_learn` and by the Rust trainer
+produced the same top-1 answers.
 
-- it no longer builds on a supported toolchain;
-- we need sample weights, parallel training or reproducible CI training;
-- we need to generate the same model format without a C++ build dependency.
+Remaining before using it for a full model:
 
-A future Rust trainer can reuse the vendored feature extraction and emit the
-same Zinnia model format, but it must be validated against `zinnia_learn` on a
-small corpus. That is a separate project, not part of this coverage change.
+- benchmark a full ~9.5k-class run and add parallelism/optimizations if needed;
+- keep an upstream parity test for a small corpus in CI;
+- validate the resulting model in the panel and on real held-out strokes.
 
 ## Risks
 

@@ -17,7 +17,7 @@ docs/
   research/       current findings, dataset/license survey, wagomu notes
   plans/          implementation plans
 data/
-  tomoe/          online stroke corpora: ja, zh_CN, zh_TW (LGPL-2.1)
+  tomoe/          online stroke corpora: ja, zh_CN, zh_TW (LGPL-2.1-or-later)
   manifests/      pinned URLs, sizes and SHA-256 for data and models
   capture/        generated target-character lists; ignored
   collected/      local captured samples; ignored by Git
@@ -70,7 +70,15 @@ samples are committed only after consent.
 ./scripts/mmh_to_zinnia.py \
   --only-xml data/tomoe/handwriting-zh_CN.xml \
   --out models/mmh/zh_CN-second.s
+
+# offline trainer (Rust port of zinnia_learn)
+cargo run --release --manifest-path tools/ink-train/Cargo.toml -- \
+  --out models/zinnia/zh_CN-coverage.model \
+  models/tomoe/zh_CN.s models/mmh/zh_CN-new.s
 ```
+
+`tools/ink-train` and `tools/eval` resolve the `fcitx5-ink` recognizer crate
+from a sibling checkout; clone both repositories under the same parent.
 
 `dataset-stats.py` parses the three Tomoe XML corpora and writes
 `reports/dataset-stats.md`. No third-party packages are required.
@@ -109,5 +117,7 @@ CC BY-SA) into a model whose license cannot carry the same terms.
 ## License
 
 Scripts, documentation and this repository's original files are
-GPL-3.0-or-later. Committed Tomoe data is LGPL-2.1-or-later; see
+GPL-3.0-or-later. `tools/ink-train` also contains code ported from Zinnia's
+`svm.cpp`, Copyright (C) 2008 Taku Kudo, under BSD-3-Clause; see
+`LICENSES/BSD-3-Clause.txt`. Committed Tomoe data is LGPL-2.1-or-later; see
 `data/tomoe/COPYING` and `REUSE.toml`.

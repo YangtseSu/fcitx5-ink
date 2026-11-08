@@ -44,7 +44,7 @@ def zinnia(character, strokes):
         parts.append(f"({points})")
     return (
         f"(character (value {character}) (width {CANVAS}) (height {CANVAS}) "
-        f"(strokes ({' '.join(parts)})))"
+        f"(strokes {' '.join(parts)}))"
     )
 
 

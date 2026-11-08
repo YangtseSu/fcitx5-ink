@@ -1,0 +1,12 @@
+[package]
+name = "ink-train"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later AND BSD-3-Clause"
+description = "Zinnia-format linear-SVM trainer for fcitx5-ink"
+
+[dependencies]
+fcitx5-ink-handwriting = { path = "../../../fcitx5-ink/crates/handwriting" }
+
+[dev-dependencies]
+tempfile = "3"

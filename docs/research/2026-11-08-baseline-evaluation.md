@@ -66,4 +66,5 @@ Observations:
 - data: `data/manifests/tomoe.json`
 - models: `data/manifests/tegaki-models.json`
 - evaluator: `tools/eval`
-- recognizer code: `~/projects/handwriting/fcitx5-ink` at commit `dc13b46`
+- recognizer code: [`fcitx5-ink`](https://github.com/YangtseSu/fcitx5-ink) at
+  commit `dc13b46`

@@ -47,7 +47,7 @@ def main():
             )
             output.write(
                 f"(character (value {character[0]}) (width {width}) "
-                f"(height {height}) (strokes ({encoded})))\n"
+                f"(height {height}) (strokes {encoded}))\n"
             )
             count += 1
     print(f"wrote {count} characters to {args.out}")

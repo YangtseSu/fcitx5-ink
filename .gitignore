@@ -8,3 +8,4 @@ __pycache__/
 /tools/eval/target/
 /data/collected/*.jsonl
 /data/capture/generated/
+/tools/ink-train/target/
