@@ -111,6 +111,10 @@ Date: 2026-11-08
   `FCITX5_INK_HOTKEY` still wins as a test override.
 - The hotkey integration test now verifies a configured hotkey, socket reload,
   and that the old hotkey stops working.
+- 2026-11-09: the panel was rebuilt with a rice-grid canvas on the left, the
+  stroke-action buttons below it, and a four-column recognizer grid on the
+  right. Candidates show numeric shortcuts and `1`–`9`/`0` input the matching
+  candidate; clicking a candidate still inputs it.
 
 ## Acceptance
 

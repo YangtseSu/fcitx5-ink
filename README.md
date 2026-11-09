@@ -120,11 +120,19 @@ fcitx5-ink-data:
 Restart fcitx5 after installing (`fcitx5 -d --replace` or your service
 manager), then press `Control+Alt+H`.
 
-The panel has undo, redo, delete-last-stroke and clear controls. Keyboard
-shortcuts while the panel is focused:
+The panel is split into a rice-grid canvas on the left and the recognition
+results on the right. The canvas has undo, redo, delete-last-stroke and clear
+buttons below it. When the candidate limit allows, the first ten candidates are
+numbered `1`–`9` and `0`; the default four-column grid puts `1`–`4` in the first
+row, and candidates beyond ten are click-only. Clicking a candidate inputs it,
+and 复制首选 copies the first candidate to the clipboard.
+
+Keyboard shortcuts while the panel is focused:
 
 | Shortcut | Action |
 |---|---|
+| `1`–`9` | input the corresponding numbered candidate |
+| `0` | input the tenth candidate |
 | `Ctrl+Z` | undo |
 | `Ctrl+Shift+Z`, `Ctrl+Y` | redo |
 | `BackSpace` | delete the last stroke |

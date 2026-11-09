@@ -7,8 +7,9 @@ use editor::InkEditor;
 use fcitx5_ink_core::{config, model, recognize, socket};
 use gtk::prelude::*;
 use gtk::{
-    gdk, glib, Application, ApplicationWindow, Box as GtkBox, Button, DrawingArea, DropDown, Entry,
-    EventControllerKey, FlowBox, HeaderBar, Label, Orientation, SpinButton, Window,
+    gdk, glib, Application, ApplicationWindow, AspectFrame, Box as GtkBox, Button, CssProvider,
+    DrawingArea, DropDown, Entry, EventControllerKey, Grid, HeaderBar, Image, Label, Orientation,
+    Overlay, SpinButton, Window,
 };
 use recognition::{Finish, RecognitionState, Start};
 use std::cell::RefCell;
@@ -38,7 +39,9 @@ struct Paths {
 struct Ui {
     window: ApplicationWindow,
     canvas: DrawingArea,
-    candidates: FlowBox,
+    canvas_hint: Label,
+    candidates: Grid,
+    candidates_empty: GtkBox,
     status: Label,
     copy_button: Button,
     undo_button: Button,
@@ -182,70 +185,153 @@ fn run_self_test(args: &Args) -> i32 {
 }
 
 fn build_ui(app: &Application, paths: Rc<Paths>, settings: config::Config) {
+    install_css();
+
     let window = ApplicationWindow::builder()
         .application(app)
         .title("墨笔手写")
-        .default_width(620)
-        .default_height(560)
+        .default_width(980)
+        .default_height(640)
         .build();
+    window.set_size_request(780, 520);
 
     let header = HeaderBar::new();
     let settings_button = Button::with_label("设置");
+    settings_button.add_css_class("flat");
+    settings_button.set_tooltip_text(Some("快捷键、语言和笔画设置"));
     header.pack_start(&settings_button);
     let copy_button = Button::with_label("复制首选");
+    copy_button.add_css_class("flat");
+    copy_button.set_tooltip_text(Some("复制第一个候选到剪贴板"));
     header.pack_end(&copy_button);
+    let title = Label::new(Some("墨笔手写"));
+    title.add_css_class("ink-window-title");
+    header.set_title_widget(Some(&title));
     window.set_titlebar(Some(&header));
 
-    let root = GtkBox::new(Orientation::Vertical, 8);
-    root.set_margin_top(8);
-    root.set_margin_bottom(8);
-    root.set_margin_start(8);
-    root.set_margin_end(8);
+    let root = GtkBox::new(Orientation::Horizontal, 16);
+    root.add_css_class("ink-root");
+    root.set_margin_top(16);
+    root.set_margin_bottom(16);
+    root.set_margin_start(16);
+    root.set_margin_end(16);
+
+    let left = GtkBox::new(Orientation::Vertical, 12);
+    left.add_css_class("ink-card");
+    left.set_hexpand(true);
+    left.set_vexpand(true);
 
     let canvas = DrawingArea::new();
-    canvas.set_size_request(420, 300);
     canvas.set_hexpand(true);
     canvas.set_vexpand(true);
-    root.append(&canvas);
+    canvas.set_cursor_from_name(Some("crosshair"));
 
-    let actions = GtkBox::new(Orientation::Horizontal, 6);
+    let canvas_surface = Overlay::new();
+    canvas_surface.add_css_class("ink-canvas");
+    canvas_surface.set_hexpand(true);
+    canvas_surface.set_vexpand(true);
+    canvas_surface.set_child(Some(&canvas));
+
+    let canvas_hint = Label::new(Some("请在这里书写"));
+    canvas_hint.add_css_class("ink-canvas-hint");
+    canvas_hint.set_halign(gtk::Align::Center);
+    canvas_hint.set_valign(gtk::Align::Center);
+    canvas_hint.set_can_target(false);
+    canvas_surface.add_overlay(&canvas_hint);
+
+    let aspect = AspectFrame::new(0.5, 0.5, 1.0, false);
+    aspect.set_child(Some(&canvas_surface));
+    aspect.set_hexpand(true);
+    aspect.set_vexpand(true);
+    left.append(&aspect);
+
+    let actions = GtkBox::new(Orientation::Horizontal, 8);
+    actions.set_homogeneous(true);
     let undo_button = Button::with_label("撤销");
     let redo_button = Button::with_label("重做");
     let delete_button = Button::with_label("删末笔");
     let clear_button = Button::with_label("清空");
-    undo_button.set_tooltip_text(Some("撤销上一笔（Ctrl+Z）"));
-    redo_button.set_tooltip_text(Some("重做（Ctrl+Shift+Z 或 Ctrl+Y）"));
-    delete_button.set_tooltip_text(Some("删除最后一笔且不能重做（BackSpace）"));
-    clear_button.set_tooltip_text(Some("清空全部笔迹（Delete）"));
-    actions.append(&undo_button);
-    actions.append(&redo_button);
-    actions.append(&delete_button);
-    actions.append(&clear_button);
-    root.append(&actions);
+    for (button, tooltip) in [
+        (&undo_button, "撤销上一笔（Ctrl+Z）"),
+        (&redo_button, "重做（Ctrl+Shift+Z 或 Ctrl+Y）"),
+        (&delete_button, "删除最后一笔且不能重做（BackSpace）"),
+        (&clear_button, "清空全部笔迹（Delete）"),
+    ] {
+        button.add_css_class("ink-action");
+        button.set_hexpand(true);
+        button.set_tooltip_text(Some(tooltip));
+        actions.append(button);
+    }
+    left.append(&actions);
+    root.append(&left);
 
-    let candidate_box = FlowBox::new();
-    candidate_box.set_selection_mode(gtk::SelectionMode::None);
-    candidate_box.set_max_children_per_line(6);
-    candidate_box.set_column_spacing(6);
-    candidate_box.set_row_spacing(6);
-    candidate_box.set_hexpand(true);
-    root.append(&candidate_box);
+    let right = GtkBox::new(Orientation::Vertical, 12);
+    right.add_css_class("ink-card");
+    right.set_hexpand(true);
+    right.set_vexpand(true);
 
-    let status = Label::new(Some("写一个字，松开后识别"));
+    let heading = GtkBox::new(Orientation::Vertical, 2);
+    let title = Label::new(Some("识别结果"));
+    title.add_css_class("ink-heading");
+    title.set_xalign(0.0);
+    let hint = Label::new(Some("点击候选输入，或按数字键快速选择"));
+    hint.add_css_class("ink-subtle");
+    hint.set_xalign(0.0);
+    heading.append(&title);
+    heading.append(&hint);
+    right.append(&heading);
+
+    let candidates = Grid::new();
+    candidates.set_column_homogeneous(true);
+    candidates.set_column_spacing(8);
+    candidates.set_row_spacing(8);
+    candidates.set_hexpand(true);
+    candidates.set_valign(gtk::Align::Start);
+    candidates.set_visible(false);
+
+    let candidates_empty = GtkBox::new(Orientation::Vertical, 8);
+    candidates_empty.set_hexpand(true);
+    candidates_empty.set_vexpand(true);
+    candidates_empty.set_halign(gtk::Align::Center);
+    candidates_empty.set_valign(gtk::Align::Center);
+    let empty_icon = Image::from_icon_name("document-edit-symbolic");
+    empty_icon.set_pixel_size(28);
+    empty_icon.add_css_class("ink-empty-icon");
+    let empty_title = Label::new(Some("写下一个字，候选会出现在这里"));
+    empty_title.add_css_class("ink-empty-title");
+    let empty_hint = Label::new(Some("每写完一笔，自动更新识别结果"));
+    empty_hint.add_css_class("ink-empty-hint");
+    candidates_empty.append(&empty_icon);
+    candidates_empty.append(&empty_title);
+    candidates_empty.append(&empty_hint);
+
+    let candidate_content = GtkBox::new(Orientation::Vertical, 0);
+    candidate_content.set_vexpand(true);
+    candidate_content.append(&candidates);
+    candidate_content.append(&candidates_empty);
+    right.append(&candidate_content);
+
+    let status = Label::new(Some("在左侧书写，松开后自动识别"));
     status.set_xalign(0.0);
-    root.append(&status);
+    status.set_wrap(true);
+    status.add_css_class("ink-status");
+    right.append(&status);
+
+    root.append(&right);
     window.set_child(Some(&root));
 
     let ui = Ui {
         window: window.clone(),
         canvas: canvas.clone(),
-        candidates: candidate_box,
+        canvas_hint: canvas_hint.clone(),
+        candidates: candidates.clone(),
+        candidates_empty: candidates_empty.clone(),
         status,
         copy_button: copy_button.clone(),
-        undo_button,
-        redo_button,
-        delete_button,
-        clear_button,
+        undo_button: undo_button.clone(),
+        redo_button: redo_button.clone(),
+        delete_button: delete_button.clone(),
+        clear_button: clear_button.clone(),
         ink: Rc::new(RefCell::new(Ink::default())),
         paths,
         settings: Rc::new(RefCell::new(settings)),
@@ -253,6 +339,7 @@ fn build_ui(app: &Application, paths: Rc<Paths>, settings: config::Config) {
 
     let draw_ui = ui.clone();
     canvas.set_draw_func(move |area, context, width, height| {
+        draw_guides(area, context, width, height);
         let ink = draw_ui.ink.borrow();
         let width_px = f64::from(draw_ui.settings.borrow().panel.stroke_width);
         draw_strokes(area, context, width, height, ink.editor.strokes(), width_px);
@@ -283,7 +370,7 @@ fn build_ui(app: &Application, paths: Rc<Paths>, settings: config::Config) {
             }
         }
         drag_begin_ui.set_status("书写中，松开后自动识别");
-        drag_begin_ui.canvas.queue_draw();
+        drag_begin_ui.redraw();
     });
     let drag_update_ui = ui.clone();
     drag.connect_drag_update(move |_, offset_x, offset_y| {
@@ -310,7 +397,7 @@ fn build_ui(app: &Application, paths: Rc<Paths>, settings: config::Config) {
             ink.current.push(point);
         }
         drop(ink);
-        drag_update_ui.canvas.queue_draw();
+        drag_update_ui.redraw();
     });
     let drag_end_ui = ui.clone();
     drag.connect_drag_end(move |_, _offset_x, _offset_y| {
@@ -328,7 +415,7 @@ fn build_ui(app: &Application, paths: Rc<Paths>, settings: config::Config) {
                 false
             }
         };
-        drag_end_ui.canvas.queue_draw();
+        drag_end_ui.redraw();
         if added {
             drag_end_ui.refresh_recognition();
         } else {
@@ -360,6 +447,13 @@ fn build_ui(app: &Application, paths: Rc<Paths>, settings: config::Config) {
         }
         let control = modifiers.contains(ModifierType::CONTROL_MASK);
         let shift = modifiers.contains(ModifierType::SHIFT_MASK);
+        if !control && !modifiers.contains(ModifierType::SUPER_MASK) {
+            if let Some(index) = key.to_unicode().and_then(shortcut_index) {
+                if key_ui.commit_candidate(index) {
+                    return glib::Propagation::Stop;
+                }
+            }
+        }
         match key {
             gdk::Key::Escape => {
                 key_ui.window.close();
@@ -391,7 +485,167 @@ fn build_ui(app: &Application, paths: Rc<Paths>, settings: config::Config) {
     window.add_controller(key_controller);
 
     ui.sync_actions();
+    ui.redraw();
     window.present();
+}
+
+const PANEL_CSS: &str = r#"
+.ink-root {
+    background-color: @theme_bg_color;
+}
+.ink-card {
+    background-color: @theme_base_color;
+    border: 1px solid @borders;
+    border-radius: 14px;
+    padding: 16px;
+}
+.ink-window-title {
+    font-weight: 600;
+}
+.ink-heading {
+    font-size: 15px;
+    font-weight: 600;
+}
+.ink-subtle {
+    color: @insensitive_fg_color;
+    font-size: 12px;
+}
+.ink-canvas {
+    background-color: @theme_base_color;
+    border: 1px solid @borders;
+    border-radius: 14px;
+}
+.ink-canvas-hint {
+    color: @insensitive_fg_color;
+    font-size: 16px;
+}
+.ink-action {
+    min-height: 34px;
+    padding: 0 8px;
+    border: 1px solid @borders;
+    border-radius: 8px;
+    background-color: @theme_base_color;
+    color: @theme_fg_color;
+    font-size: 13px;
+}
+.ink-action:hover {
+    background-color: alpha(@theme_fg_color, 0.06);
+}
+.ink-action:active {
+    background-color: alpha(@theme_fg_color, 0.12);
+}
+.ink-action:disabled {
+    color: @insensitive_fg_color;
+}
+.ink-candidate {
+    min-height: 56px;
+    padding: 4px;
+    border: 1px solid @borders;
+    border-radius: 8px;
+    background-color: @theme_base_color;
+    color: @theme_fg_color;
+}
+.ink-candidate:hover {
+    border-color: @theme_selected_bg_color;
+    background-color: alpha(@theme_selected_bg_color, 0.08);
+}
+.ink-candidate:focus-visible {
+    outline: 2px solid @theme_selected_bg_color;
+    outline-offset: 2px;
+}
+.ink-candidate-text {
+    font-size: 20px;
+    font-weight: 500;
+}
+.ink-candidate-number {
+    color: @insensitive_fg_color;
+    background-color: alpha(@theme_fg_color, 0.07);
+    border-radius: 4px;
+    padding: 1px 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+.ink-status {
+    border-top: 1px solid @borders;
+    padding-top: 10px;
+    color: @insensitive_fg_color;
+    font-size: 12px;
+}
+.ink-empty-icon {
+    color: @insensitive_fg_color;
+}
+.ink-empty-title {
+    color: @insensitive_fg_color;
+    font-size: 13px;
+}
+.ink-empty-hint {
+    color: @insensitive_fg_color;
+    font-size: 12px;
+}
+"#;
+
+fn install_css() {
+    let provider = CssProvider::new();
+    provider.load_from_data(PANEL_CSS);
+    if let Some(display) = gdk::Display::default() {
+        gtk::style_context_add_provider_for_display(
+            &display,
+            &provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+    }
+}
+
+/// Map a displayed number to a zero-based candidate index. `0` selects the
+/// tenth candidate; candidates beyond ten remain click-only.
+fn shortcut_index(character: char) -> Option<usize> {
+    match character {
+        '1'..='9' => Some(character as usize - '1' as usize),
+        '0' => Some(9),
+        _ => None,
+    }
+}
+
+fn candidate_shortcut(index: usize) -> Option<char> {
+    match index {
+        0..=8 => char::from_digit(index as u32 + 1, 10),
+        9 => Some('0'),
+        _ => None,
+    }
+}
+
+fn candidate_at(candidates: &[String], limit: usize, index: usize) -> Option<&str> {
+    if index >= limit {
+        return None;
+    }
+    candidates.get(index).map(String::as_str)
+}
+
+fn draw_guides(area: &DrawingArea, context: &gtk::cairo::Context, width: i32, height: i32) {
+    if width <= 0 || height <= 0 {
+        return;
+    }
+    let color = area.style_context().color();
+    context.set_source_rgba(
+        f64::from(color.red()),
+        f64::from(color.green()),
+        f64::from(color.blue()),
+        0.22,
+    );
+    context.set_line_width(1.0);
+    context.set_dash(&[5.0, 7.0], 0.0);
+    let width = f64::from(width);
+    let height = f64::from(height);
+    context.move_to(width / 2.0, 0.0);
+    context.line_to(width / 2.0, height);
+    context.move_to(0.0, height / 2.0);
+    context.line_to(width, height / 2.0);
+    context.move_to(0.0, 0.0);
+    context.line_to(width, height);
+    context.move_to(width, 0.0);
+    context.line_to(0.0, height);
+    let _ = context.stroke();
+    context.set_dash(&[], 0.0);
 }
 
 impl Ui {
@@ -416,11 +670,22 @@ impl Ui {
         }
     }
 
+    fn redraw(&self) {
+        let empty = {
+            let ink = self.ink.borrow();
+            ink.editor.strokes().is_empty() && ink.current.is_empty()
+        };
+        self.canvas_hint.set_visible(empty);
+        self.canvas.queue_draw();
+    }
+
     fn clear_candidates(&self) {
         while let Some(child) = self.candidates.first_child() {
             self.candidates.remove(&child);
         }
         self.ink.borrow_mut().candidates.clear();
+        self.candidates_empty.set_visible(true);
+        self.candidates.set_visible(false);
     }
 
     fn apply_candidates(&self, list: &[String]) {
@@ -435,9 +700,20 @@ impl Ui {
         if self.ink.borrow().candidates.is_empty() {
             self.set_status("未识别到内容，重写一次");
         } else {
-            self.set_status("点击候选输入，或点“复制首选”");
+            self.set_status(&format!(
+                "已识别 {} 个候选",
+                self.displayed_candidate_count()
+            ));
         }
         self.sync_actions();
+    }
+
+    fn displayed_candidate_count(&self) -> usize {
+        self.ink
+            .borrow()
+            .candidates
+            .len()
+            .min(self.settings.borrow().panel.max_candidates)
     }
 
     fn render_candidates(&self) {
@@ -446,12 +722,63 @@ impl Ui {
         }
         let candidates = self.ink.borrow().candidates.clone();
         let limit = self.settings.borrow().panel.max_candidates;
-        for candidate in candidates.into_iter().take(limit) {
-            let button = Button::with_label(&candidate);
-            button.set_tooltip_text(Some(&format!("输入 {candidate}")));
+        let visible: Vec<String> = candidates.into_iter().take(limit).collect();
+        self.candidates_empty.set_visible(visible.is_empty());
+        self.candidates.set_visible(!visible.is_empty());
+        for (index, candidate) in visible.into_iter().enumerate() {
+            let number = candidate_shortcut(index);
+            let button = Button::new();
+            button.add_css_class("ink-candidate");
+            button.set_hexpand(true);
+            button.set_tooltip_text(Some(&match number {
+                Some(number) => format!("输入 {candidate}（数字 {number}）"),
+                None => format!("输入 {candidate}"),
+            }));
+
+            let content = Overlay::new();
+            content.set_can_target(false);
+            let text = Label::new(Some(&candidate));
+            text.add_css_class("ink-candidate-text");
+            text.set_can_target(false);
+            text.set_hexpand(true);
+            text.set_vexpand(true);
+            text.set_halign(gtk::Align::Center);
+            text.set_valign(gtk::Align::Center);
+            content.set_child(Some(&text));
+            if let Some(number) = number {
+                let badge = Label::new(Some(&number.to_string()));
+                badge.add_css_class("ink-candidate-number");
+                badge.set_halign(gtk::Align::Start);
+                badge.set_valign(gtk::Align::Start);
+                badge.set_margin_start(6);
+                badge.set_margin_top(5);
+                badge.set_can_target(false);
+                content.add_overlay(&badge);
+            }
+            button.set_child(Some(&content));
+
             let ui = self.clone();
             button.connect_clicked(move |_| ui.commit(candidate.clone()));
-            self.candidates.insert(&button, -1);
+            self.candidates
+                .attach(&button, (index % 4) as i32, (index / 4) as i32, 1, 1);
+        }
+    }
+
+    fn commit_candidate(&self, index: usize) -> bool {
+        if self.ink.borrow().committing {
+            return false;
+        }
+        let limit = self.settings.borrow().panel.max_candidates;
+        let candidate = {
+            let ink = self.ink.borrow();
+            candidate_at(&ink.candidates, limit, index).map(str::to_owned)
+        };
+        match candidate {
+            Some(candidate) => {
+                self.commit(candidate);
+                true
+            }
+            None => false,
         }
     }
 
@@ -469,17 +796,21 @@ impl Ui {
         self.copy_button
             .set_sensitive(!ink.candidates.is_empty() && !busy);
         self.canvas.set_sensitive(!busy);
+        self.candidates.set_sensitive(!busy);
     }
 
     fn restore_recognition_status(&self) {
         if self.ink.borrow().candidates.is_empty() {
             if self.ink.borrow().editor.strokes().is_empty() {
-                self.set_status("写一个字，松开后识别");
+                self.set_status("在左侧书写，松开后自动识别");
             } else {
                 self.refresh_recognition();
             }
         } else {
-            self.set_status("点击候选输入，或点“复制首选”");
+            self.set_status(&format!(
+                "已识别 {} 个候选",
+                self.displayed_candidate_count()
+            ));
         }
     }
 
@@ -491,7 +822,7 @@ impl Ui {
         self.clear_candidates();
         if strokes.is_empty() {
             self.ink.borrow_mut().recognition.cancel();
-            self.set_status("写一个字，松开后识别");
+            self.set_status("在左侧书写，松开后自动识别");
             self.sync_actions();
             return;
         }
@@ -575,7 +906,7 @@ impl Ui {
         if !changed {
             return;
         }
-        self.canvas.queue_draw();
+        self.redraw();
         self.refresh_recognition();
     }
 
@@ -587,7 +918,7 @@ impl Ui {
         if !changed {
             return;
         }
-        self.canvas.queue_draw();
+        self.redraw();
         self.refresh_recognition();
     }
 
@@ -599,7 +930,7 @@ impl Ui {
         if !changed {
             return;
         }
-        self.canvas.queue_draw();
+        self.redraw();
         self.refresh_recognition();
     }
 
@@ -615,8 +946,8 @@ impl Ui {
         self.ink.borrow_mut().recognition.cancel();
         self.ink.borrow_mut().current.clear();
         self.clear_candidates();
-        self.canvas.queue_draw();
-        self.set_status("写一个字，松开后识别");
+        self.redraw();
+        self.set_status("在左侧书写，松开后自动识别");
         self.sync_actions();
     }
 
@@ -655,7 +986,7 @@ impl Ui {
                         ink.current.clear();
                     }
                     ui.clear_candidates();
-                    ui.canvas.queue_draw();
+                    ui.redraw();
                     ui.window.set_visible(true);
                     ui.set_status("已输入，继续写下一个字");
                     ui.sync_actions();
@@ -820,7 +1151,7 @@ impl Ui {
                     Ok(SaveOutcome::Saved { warning }) => {
                         let previous_language = ui.settings.borrow().panel.language;
                         *ui.settings.borrow_mut() = next.clone();
-                        ui.canvas.queue_draw();
+                        ui.redraw();
                         let mut model_missing = false;
                         if previous_language != next.panel.language {
                             model_missing = model::discover(
@@ -974,4 +1305,30 @@ fn draw_one_stroke(
         }
     }
     let _ = context.stroke();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn candidate_number_shortcuts_cover_zero_through_ten() {
+        assert_eq!(shortcut_index('1'), Some(0));
+        assert_eq!(shortcut_index('9'), Some(8));
+        assert_eq!(shortcut_index('0'), Some(9));
+        assert_eq!(shortcut_index('a'), None);
+
+        let labels: Vec<char> = (0..10).filter_map(candidate_shortcut).collect();
+        assert_eq!(labels, ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']);
+        assert_eq!(candidate_shortcut(10), None);
+    }
+
+    #[test]
+    fn candidate_lookup_respects_the_visible_limit() {
+        let candidates = vec!["一".to_owned(), "二".to_owned()];
+        assert_eq!(candidate_at(&candidates, 2, 0), Some("一"));
+        assert_eq!(candidate_at(&candidates, 2, 1), Some("二"));
+        assert_eq!(candidate_at(&candidates, 1, 1), None);
+        assert_eq!(candidate_at(&candidates, 2, 2), None);
+    }
 }
