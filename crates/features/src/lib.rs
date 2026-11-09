@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2005-2008 Taku Kudo
+// SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-or-later AND BSD-3-Clause
 //! zinnia's feature extraction (`feature.cpp` `Features::read`), ported for identical scores.
 //!
 //! Ported from zinnia (<https://github.com/taku910/zinnia> at 581faa8f), Copyright (c) 2005-2007 Taku Kudo, under its 3-clause BSD license, whose text ships with the product notices as `Zinnia-LICENSE.txt`.
@@ -6,13 +9,13 @@
 
 /// One sparse feature, `FeatureNode` in the reference. Model weights use the same shape.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(super) struct FeatureNode {
+pub struct FeatureNode {
     pub index: i32,
     pub value: f32,
 }
 
 /// One stroke of integer points on zinnia's canvas, `Character::add` in the reference.
-pub(super) type InkStroke = Vec<(i32, i32)>;
+pub type InkStroke = Vec<(i32, i32)>;
 
 #[derive(Clone, Copy)]
 struct Node {
@@ -28,7 +31,7 @@ const SPLIT_ERROR: f32 = 0.001;
 /// The features of one character whose strokes are integer points on a `size` by `size` canvas, sorted by index and without the reference's `-1` terminator. `None` where the reference's `read` returns false: no strokes or an empty stroke.
 ///
 /// Indices can repeat in one case, a vertex pair with id 50, whose offset `sid * 1000 + 1000` equals the next stroke's first pair. The sort here is stable, so the earlier feature is the one `dot` uses; the reference's `std::sort` leaves that order to the standard library.
-pub(super) fn extract(strokes: &[InkStroke], size: u32) -> Option<Vec<FeatureNode>> {
+pub fn extract(strokes: &[InkStroke], size: u32) -> Option<Vec<FeatureNode>> {
     if strokes.is_empty() || strokes.iter().any(Vec::is_empty) {
         return None;
     }
@@ -79,6 +82,17 @@ pub(super) fn extract(strokes: &[InkStroke], size: u32) -> Option<Vec<FeatureNod
     push(&mut features, 2_000_000 + stroke_count, 10.0);
     features.sort_by_key(|feature| feature.index);
     Some(features)
+}
+
+/// The same features as [`extract`], as `(index, value)` pairs. This is the
+/// representation the offline trainer and the model writer use.
+pub fn extract_pairs(strokes: &[InkStroke], size: u32) -> Option<Vec<(i32, f32)>> {
+    extract(strokes, size).map(|nodes| {
+        nodes
+            .into_iter()
+            .map(|node| (node.index, node.value))
+            .collect()
+    })
 }
 
 fn push(features: &mut Vec<FeatureNode>, index: i32, value: f32) {

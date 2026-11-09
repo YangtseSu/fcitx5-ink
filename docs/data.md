@@ -1,8 +1,8 @@
-# fcitx5-ink-data
+# Data and training
 
 Research, training data and evaluation tooling for the handwriting recognizer
-used by [`fcitx5-ink`](https://github.com/YangtseSu/fcitx5-ink). This repository
-does not contain the fcitx5 addon or the GTK panel; it owns the data side:
+used by `fcitx5-ink`. The data lives in the same repository as the addon and
+panel, but the `fcitx5-ink-data` Arch package still ships only the models:
 
 - source handwriting corpora and manifests;
 - fetchers and checksum verification for models;
@@ -14,6 +14,7 @@ does not contain the fcitx5 addon or the GTK panel; it owns the data side:
 
 ```text
 docs/
+  data.md         this document
   research/       current findings, dataset/license survey, wagomu notes
   plans/          implementation plans
 data/
@@ -22,12 +23,17 @@ data/
   capture/        generated target-character lists; ignored
   collected/      local captured samples; ignored by Git
   evaluation/     consented writer samples and manifest
-models/           fetched models; ignored by Git
+models/           fetched and trained models; ignored by Git
 scripts/          fetch, verify, convert, evaluate, make capture lists
-tools/            capture UI and Zinnia evaluation adapter
+tools/
+  ink-train/      offline Zinnia trainer
+  eval/           Zinnia evaluation adapter
+  capture/        local capture UI
 reports/          generated statistics and evaluation results
 experiments/      training configurations and run records
 ```
+
+Run the commands from the repository root.
 
 Capture a held-out evaluation sample locally:
 
@@ -77,8 +83,9 @@ cargo run --release --manifest-path tools/ink-train/Cargo.toml -- \
   models/tomoe/zh_CN.s models/mmh/zh_CN-new.s
 ```
 
-`tools/ink-train` and `tools/eval` resolve the `fcitx5-ink` recognizer crate
-from a sibling checkout; clone both repositories under the same parent.
+The trainer and evaluator are normal Cargo workspace members. The trainer uses
+`crates/features`; the evaluator uses the runtime recognizer. No sibling
+checkout is required.
 
 `dataset-stats.py` parses the three Tomoe XML corpora and writes
 `reports/dataset-stats.md`. No third-party packages are required.
@@ -116,8 +123,8 @@ CC BY-SA) into a model whose license cannot carry the same terms.
 
 ## License
 
-Scripts, documentation and this repository's original files are
-GPL-3.0-or-later. `tools/ink-train` also contains code ported from Zinnia's
-`svm.cpp`, Copyright (C) 2008 Taku Kudo, under BSD-3-Clause; see
-`LICENSES/BSD-3-Clause.txt`. Committed Tomoe data is LGPL-2.1-or-later; see
-`data/tomoe/COPYING` and `REUSE.toml`.
+Scripts, documentation and original files are GPL-3.0-or-later.
+`tools/ink-train` and `crates/features` retain Zinnia's BSD-3-Clause terms;
+see `LICENSES/BSD-3-Clause.txt`. Committed Tomoe data is LGPL-2.1-or-later;
+Make Me a Hanzi medians are Arphic-1999. See `data/tomoe/COPYING`,
+`data/manifests/makemeahanzi.json` and `REUSE.toml`.

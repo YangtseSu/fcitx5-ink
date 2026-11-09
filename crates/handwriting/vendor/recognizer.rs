@@ -9,10 +9,10 @@ use std::sync::{Arc, LazyLock, Mutex};
 use lru::LruCache;
 use memmap2::Mmap;
 
-use super::features::{self, InkStroke};
 use super::model::Model;
 use super::order_handwriting_candidates;
 use crate::{EngineError, Result};
+use fcitx5_ink_features::{self as features, InkStroke};
 
 const CANNOT_OPEN: &str = "Cannot open handwriting model";
 const INVALID_CANVAS: &str = "Invalid handwriting canvas";

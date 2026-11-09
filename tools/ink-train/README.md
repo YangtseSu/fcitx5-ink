@@ -12,16 +12,11 @@ A Rust port of Zinnia's offline `zinnia_learn` training loop:
 
 It is a training tool, not part of the panel runtime.
 
-The trainer resolves `fcitx5-ink` through a path dependency. Clone both
-repositories under the same parent:
-
-```text
-<parent>/fcitx5-ink
-<parent>/fcitx5-ink-data
-```
+The trainer is a workspace member and uses `crates/features` through a normal
+path dependency. Run it from the repository root:
 
 ```sh
-cargo run --release --manifest-path tools/ink-train/Cargo.toml -- \
+cargo run --release -p ink-train -- \
   --out models/zinnia/zh_CN-coverage.model \
   models/tomoe/zh_CN.s models/mmh/zh_CN-new.s
 ```
@@ -37,7 +32,9 @@ machine; the 9,574-class zh_CN coverage model takes about one minute and is
 
 The implementation is validated against the model format used by
 `fcitx5-ink-handwriting`; exact parity with upstream `zinnia_learn` requires a
-seeded/random-order comparison and is a follow-up test.
+seeded/random-order comparison and is a follow-up test. The two-class
+end-to-end test loads the trained model through the recognizer; the feature
+crate keeps training and inference on the same extraction.
 
 ## License
 

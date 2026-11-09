@@ -2,8 +2,9 @@
 
 A standalone handwriting input tool for fcitx5. The addon is C++20, the
 panel is GTK4 via `gtk4-rs`, and recognition is the vendored msime handwriting
-engine. It does not depend on the msime input method, its host code, or its
-platform directory.
+engine. The same repository contains the handwriting data, the offline trainer,
+the evaluation harness and the Arch packaging. It does not depend on the msime
+input method, its host code, or its platform directory.
 
 - **Name:** `fcitx5-ink`; Chinese UI name **墨笔**.
 - **Default hotkey:** `Control+Alt+H` to open or close the panel without
@@ -18,23 +19,24 @@ platform directory.
 
 ## Layout: crates/handwriting
 
-`crates/handwriting/vendor/` is the `handwriting` module from
-`msime/crates/engine/src/handwriting/`, including `features.rs`, `mod.rs`,
-`model.rs`, `recognizer.rs`, and `testdata/`. It is pinned from
-`metasequoiaime/msime` commit `a2365adbad` (`develop`), with one additive
-change: `recognizer.rs` also exports `handwriting_recognize_ranked`, which
-returns labels in model score order so Japanese kana are not moved behind every
-Han candidate, and `mod.rs` exports `extract_feature_nodes` for the offline
-trainer. The existing `handwriting_recognize` still applies msime's Chinese
-candidate policy.
+`crates/features/` contains the Zinnia-compatible sparse feature extraction.
+It is shared by the recognizer and `tools/ink-train`, so training and inference
+cannot drift apart. `crates/handwriting/vendor/` retains the upstream
+`mod.rs`, `model.rs`, `recognizer.rs` and `testdata/`; `features.rs` now lives
+in the feature crate. The module is pinned from `metasequoiaime/msime` commit
+`a2365adbad` (`develop`), with the ranked-output addition: `recognizer.rs`
+exports `handwriting_recognize_ranked`, which returns labels in model score
+order so Japanese kana are not moved behind every Han candidate. The existing
+`handwriting_recognize` still applies msime's Chinese candidate policy.
 
 `crates/handwriting/src/lib.rs` is the crate root that wraps the vendor module:
 it provides the `handwriting` module path, the `EngineError`/`Result` re-export
 and the `paths::open_file_no_follow` seam that the upstream module expects.
 
 To re-vendor, copy the upstream directory over `crates/handwriting/vendor/`,
-re-add the ranked function from the current `recognizer.rs` and its `mod.rs`
-export, then verify that no other difference remains:
+keep the ranked function, and point `features` imports at
+`crates/features/`. Review the diff instead of expecting a byte-identical
+directory; `feature.rs` moved out and `mod.rs` now calls the shared crate.
 
 ```sh
 diff -r /path/to/msime/crates/engine/src/handwriting crates/handwriting/vendor
@@ -46,10 +48,20 @@ Project code is at the root and in `crates/`:
 fcitx5-ink/
 ├── addon/       fcitx5 C++20 addon
 ├── crates/
-│   ├── handwriting/  recognizer crate; vendor/ is upstream plus ranked output
+│   ├── features/     shared Zinnia-compatible feature extraction
+│   ├── handwriting/  recognizer; vendor/ is upstream plus ranked output
 │   ├── core/         config, model discovery, recognition wrapper, panel IPC
 │   └── panel/        GTK4 panel, stroke history, settings
-├── scripts/
+├── tools/
+│   ├── ink-train/    offline Zinnia trainer
+│   ├── eval/         recognizer evaluation adapter
+│   └── capture/      local handwriting capture UI
+├── data/             Tomoe corpora, manifests, capture/evaluation data
+├── models/           downloaded and trained models; ignored
+├── scripts/          build, fetch, convert and dataset scripts
+├── reports/          generated statistics and evaluation results
+├── experiments/      training configurations and run records
+├── packaging/arch/   fcitx5-ink and fcitx5-ink-data packages
 ├── tests/
 ├── PKGBUILD
 └── README.md
@@ -76,7 +88,9 @@ return to the editor; the addon keeps a request pending for up to 700 ms while
 that focus returns.
 
 No `PanelInputChannel.h`, IBus code, Tauri code, or msime input-method code is
-compiled here. The only vendored source is `crates/handwriting/vendor/`.
+compiled here. The recognizer's feature extraction and model/recognizer port
+live in separate workspace crates; the offline trainer consumes the same
+feature crate.
 
 ## Build
 
@@ -88,12 +102,23 @@ Rust 1.89+, `nlohmann-json`, and the header-only `tomlplusplus` package.
 ./scripts/build.sh            # debug; pass --release for a release panel
 ```
 
-The models are Tegaki 0.3 Zinnia files: `handwriting-ja.model` (26.1 MB),
-`handwriting-zh_CN.model` (26.8 MB) and `handwriting-zh_TW.model` (52.2 MB).
-They are not committed; `fetch-model.sh` downloads the pinned release archives,
-extracts each model, and verifies the extracted bytes against
-`resources/handwriting-model.lock.json`. The Arch packages install them from
-the separate `fcitx5-ink-data` package.
+The baseline models are Tegaki 0.3 Zinnia files: `handwriting-ja.model`
+(26.1 MB), `handwriting-zh_CN.model` (26.8 MB) and
+`handwriting-zh_TW.model` (52.2 MB). They are not committed; `fetch-model.sh`
+downloads the pinned release archives, extracts each model, and verifies the
+extracted bytes against `resources/handwriting-model.lock.json`. The Arch
+`fcitx5-ink-data` package installs the models separately from the code package.
+
+Data preparation, training and evaluation run from this repository:
+
+```sh
+./scripts/verify-data.sh
+./scripts/fetch_mmh.py
+cargo run --release -p ink-train --   --out models/zinnia/zh_CN-coverage.model   models/tomoe/zh_CN.s models/mmh/zh_CN-new.s
+cargo run --release -p fcitx5-ink-eval --   --data reports/tomoe.jsonl --models models/zinnia
+```
+
+See `docs/data.md` for the data layout, capture workflow and training details.
 
 ## Install
 
@@ -198,8 +223,8 @@ development files.
 
 ## Arch packages
 
-The code and models are separate packages. Build and install the data package
-first; both code packages depend on it:
+The code and models remain separate binary packages. Build and install the data
+package first; both code packages depend on it:
 
 ```sh
 cd packaging/arch/fcitx5-ink-data
@@ -215,8 +240,9 @@ makepkg -si
 ```
 
 The `-git` package clones the parent repository, so commit the working tree
-first. For an AUR upload, publish `fcitx5-ink-data` and the chosen code
-package, and replace the `git+file://$startdir/../../..` source with
+first. The source repository now contains the data and tools as well as the
+code. For an AUR upload, publish the chosen code package and replace the
+`git+file://$startdir/../../..` source with
 `git+https://github.com/YangtseSu/fcitx5-ink.git`. The root `PKGBUILD` is a
 local-source package; an AUR release package should use a release tarball
 source and checksum.
@@ -255,8 +281,10 @@ data made these models possible.
 
 ## License
 
-New code is GPL-3.0-or-later. The vendored handwriting module retains the
-msime-engine licenses: MPL-2.0 for the engine code, BSD-3-Clause for the
-Zinnia port, and GPL-3.0-only for the upstream test fixtures. The handwriting
-models are LGPL-2.1-or-later; their license ships with `fcitx5-ink-data` as
-`HandwritingModel-LICENSE.txt` and is recorded in the data repository.
+New code is GPL-3.0-or-later. The feature crate and the vendored handwriting
+module retain the Zinnia/msime licenses: MPL-2.0 for the engine code,
+BSD-3-Clause for the Zinnia port, and GPL-3.0-only for the upstream test
+fixtures. Tomoe data is LGPL-2.1-or-later; Make Me a Hanzi medians are
+Arphic-1999. The handwriting models are LGPL-2.1-or-later; their license ships
+with `fcitx5-ink-data` as `HandwritingModel-LICENSE.txt`. See `REUSE.toml` and
+the notices under `data/` and `LICENSES/`.

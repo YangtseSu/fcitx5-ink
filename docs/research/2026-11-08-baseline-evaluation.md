@@ -5,7 +5,7 @@ Status: sanity check only
 
 ## Command
 
-From the data repository root:
+From the repository root:
 
 ```sh
 python3 scripts/tomoe_to_jsonl.py

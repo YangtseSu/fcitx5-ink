@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "fcitx5-ink-features"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.89"
+license = "GPL-3.0-or-later AND BSD-3-Clause"
+description = "Zinnia-compatible sparse feature extraction for fcitx5-ink"
+
+[dependencies]

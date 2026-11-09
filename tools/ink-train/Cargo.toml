@@ -6,8 +6,9 @@ license = "GPL-3.0-or-later AND BSD-3-Clause"
 description = "Zinnia-format linear-SVM trainer for fcitx5-ink"
 
 [dependencies]
-fcitx5-ink-handwriting = { path = "../../../fcitx5-ink/crates/handwriting" }
+fcitx5-ink-features = { path = "../../crates/features" }
 rayon = "1"
 
 [dev-dependencies]
+fcitx5-ink-handwriting = { path = "../../crates/handwriting" }
 tempfile = "3"

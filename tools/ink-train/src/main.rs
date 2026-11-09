@@ -11,7 +11,7 @@
 //! (<https://github.com/taku910/zinnia>), Copyright (C) 2008 Taku Kudo,
 //! under the 3-clause BSD license; see `LICENSES/BSD-3-Clause.txt`.
 
-use fcitx5_ink_handwriting::extract_feature_nodes;
+use fcitx5_ink_features::extract_pairs;
 use rayon::prelude::*;
 use std::collections::{BTreeSet, VecDeque};
 use std::fs;
@@ -339,7 +339,7 @@ fn train(options: &Options) -> Result<(), String> {
                 continue;
             }
             let (label, strokes, size) = parse_character(line)?;
-            let Some(features) = extract_feature_nodes(&strokes, size) else {
+            let Some(features) = extract_pairs(&strokes, size) else {
                 continue;
             };
             examples.push(Example { label, features });

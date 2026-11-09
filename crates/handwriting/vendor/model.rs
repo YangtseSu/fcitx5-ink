@@ -9,7 +9,7 @@ use std::ops::Range;
 
 use memmap2::Mmap;
 
-use super::features::FeatureNode;
+use fcitx5_ink_features::FeatureNode;
 
 /// `DIC_MAGIC_ID`: the first word is this XOR the file size.
 const MAGIC: u32 = 0x0EF7_1821;

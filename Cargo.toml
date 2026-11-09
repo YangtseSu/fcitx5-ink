@@ -2,5 +2,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 [workspace]
-members = ["crates/handwriting", "crates/core", "crates/panel"]
+members = [
+    "crates/features",
+    "crates/handwriting",
+    "crates/core",
+    "crates/panel",
+    "tools/ink-train",
+    "tools/eval",
+]
 resolver = "2"

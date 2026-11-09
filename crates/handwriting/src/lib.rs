@@ -3,7 +3,9 @@
 
 //! Handwriting recognition: the upstream `handwriting` module from
 //! `msime-engine`, wrapped with the small error and file-opening seam that its
-//! module code expects. The upstream files under `vendor/` are unmodified.
+//! module code expects. The feature extraction lives in the shared
+//! `fcitx5-ink-features` crate; the recognizer and model reader remain under
+//! `vendor/`.
 
 mod error;
 pub(crate) mod paths;

@@ -3,17 +3,10 @@
 Reads `reports/tomoe.jsonl` and calls the same recognizer crate used by
 `fcitx5-ink` on the normalized strokes.
 
-The path dependency expects the sibling checkout:
+The evaluator is a workspace member and uses the runtime recognizer through a
+normal path dependency.
 
-```text
-<parent>/fcitx5-ink
-<parent>/fcitx5-ink-data
-```
-
-Clone `fcitx5-ink` next to this repository; the parent directory name does not
-matter.
-
-Run from the data repository root:
+Run from the repository root:
 
 ```sh
 python3 scripts/tomoe_to_jsonl.py

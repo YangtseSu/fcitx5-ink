@@ -98,7 +98,10 @@ fn main() {
     }
 
     let file = File::open(&data).unwrap_or_else(|error| {
-        eprintln!("open {}: {error}; run scripts/tomoe_to_jsonl.py first", data.display());
+        eprintln!(
+            "open {}: {error}; run scripts/tomoe_to_jsonl.py first",
+            data.display()
+        );
         std::process::exit(1);
     });
     let mut totals: BTreeMap<&'static str, Counts> = BTreeMap::new();
@@ -220,9 +223,7 @@ fn main() {
         }
     }
     if captured {
-        eprintln!(
-            "note: captured samples; keep the evaluation writer(s) separate from training"
-        );
+        eprintln!("note: captured samples; keep the evaluation writer(s) separate from training");
     } else {
         eprintln!(
             "note: these are Tomoe training samples, not a held-out generalization benchmark"

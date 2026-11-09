@@ -7,6 +7,7 @@ license = "GPL-3.0-or-later"
 description = "Vendored msime handwriting recognizer for fcitx5-ink"
 
 [dependencies]
+fcitx5-ink-features = { path = "../features" }
 libc = "0.2"
 lru = "0.19"
 memmap2 = "0.9"

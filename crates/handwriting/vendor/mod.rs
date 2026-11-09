@@ -1,8 +1,6 @@
-//! Handwriting: the candidate policy for provider replies (`include/metasequoia/handwriting_candidates.h`), applied on every platform, and the offline recognizer the desktop hosts run on the packaged zinnia model (`recognizer`, over a Rust port of zinnia in `features` and `model`).
+//! Handwriting: the candidate policy for provider replies (`include/metasequoia/handwriting_candidates.h`), applied on every platform, and the offline recognizer the desktop hosts run on the packaged zinnia model (`recognizer`, over a Rust port of zinnia in the `fcitx5-ink-features` crate and `model`).
 
 // Android 使用 ML Kit；鸿蒙直接使用离线笔画模型，不经过图片文字识别。
-#[cfg(not(target_os = "android"))]
-mod features;
 #[cfg(not(target_os = "android"))]
 mod model;
 #[cfg(not(target_os = "android"))]
@@ -16,12 +14,7 @@ pub use recognizer::{handwriting_recognize, handwriting_recognize_ranked};
 /// uses; it does not change recognition behavior.
 #[cfg(not(target_os = "android"))]
 pub fn extract_feature_nodes(strokes: &[Vec<(i32, i32)>], size: u32) -> Option<Vec<(i32, f32)>> {
-    features::extract(strokes, size).map(|nodes| {
-        nodes
-            .into_iter()
-            .map(|node| (node.index, node.value))
-            .collect()
-    })
+    fcitx5_ink_features::extract_pairs(strokes, size)
 }
 
 pub const MAX_CANDIDATES: usize = 12;

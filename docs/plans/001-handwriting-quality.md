@@ -3,6 +3,10 @@
 Status: active
 Date: 2026-11-08
 
+> Historical plan from the former `fcitx5-ink-data` repository. On 2026-11-09
+> that repository was merged into `fcitx5-ink`; paths below are now relative to
+> the monorepo root.
+
 ## Goal
 
 Raise recognition accuracy for Japanese, Simplified Chinese and Traditional
