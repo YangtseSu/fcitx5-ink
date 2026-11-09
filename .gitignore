@@ -18,3 +18,15 @@ packaging/arch/**/tegaki-zinnia-*.zip
 packaging/arch/**/HandwritingModel-LICENSE.txt
 /tegaki-zinnia-*.zip
 /HandwritingModel-LICENSE.txt
+
+# Data and training artifacts
+/models/*
+!/models/.gitkeep
+!/models/README.md
+/reports/*.jsonl
+__pycache__/
+*.pyc
+/experiments/**/runs/
+/tools/*/target/
+/data/collected/*.jsonl
+/data/capture/generated/
