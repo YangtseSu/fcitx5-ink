@@ -12,10 +12,13 @@
 //! under the 3-clause BSD license; see `LICENSES/BSD-3-Clause.txt`.
 
 use fcitx5_ink_handwriting::extract_feature_nodes;
+use rayon::prelude::*;
 use std::collections::{BTreeSet, VecDeque};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Instant;
 
 const MAGIC: u32 = 0x0EF7_1821;
 const VERSION: u32 = 1;
@@ -57,7 +60,9 @@ fn tokenize(text: &str) -> Result<VecDeque<String>, String> {
 }
 
 fn parse_sexp(tokens: &mut VecDeque<String>) -> Result<Sexp, String> {
-    let token = tokens.pop_front().ok_or_else(|| "unexpected end".to_owned())?;
+    let token = tokens
+        .pop_front()
+        .ok_or_else(|| "unexpected end".to_owned())?;
     if token == "(" {
         let mut items = Vec::new();
         loop {
@@ -97,7 +102,9 @@ fn atom(value: &Sexp) -> Result<&str, String> {
     }
 }
 
-fn parse_character(line: &str) -> Result<(String, Vec<Vec<(i32, i32)>>, u32), String> {
+type ParsedCharacter = (String, Vec<Vec<(i32, i32)>>, u32);
+
+fn parse_character(line: &str) -> Result<ParsedCharacter, String> {
     let mut tokens = tokenize(line)?;
     let root = parse_sexp(&mut tokens)?;
     if !tokens.is_empty() {
@@ -166,6 +173,11 @@ struct Example {
     features: Vec<(i32, f32)>,
 }
 
+struct ClassWeights {
+    bias: f32,
+    features: Vec<(i32, f32)>,
+}
+
 fn dot(weights: &[f64], features: &[(i32, f32)]) -> f64 {
     features
         .iter()
@@ -179,7 +191,7 @@ fn train_one(
     max_dim: usize,
     max_iterations: usize,
     seed: u64,
-) -> Vec<f64> {
+) -> ClassWeights {
     let mut weights = vec![0.0; max_dim + 1];
     let mut alpha = vec![0.0; examples.len()];
     let mut qd = vec![0.0; examples.len()];
@@ -208,7 +220,11 @@ fn train_one(
         let mut s = 0;
         while s < active_size {
             let i = index[s];
-            let y = if examples[i].label == positive { 1.0 } else { -1.0 };
+            let y = if examples[i].label == positive {
+                1.0
+            } else {
+                -1.0
+            };
             let g = dot(&weights, &examples[i].features) * y - 1.0;
             let mut pg = 0.0;
             if alpha[i] == 0.0 {
@@ -260,10 +276,21 @@ fn train_one(
             pgmin_old = -INF;
         }
     }
-    weights
+    ClassWeights {
+        bias: weights[0] as f32,
+        features: weights
+            .iter()
+            .enumerate()
+            .skip(1)
+            .filter_map(|(index, value)| {
+                (value.abs() >= f64::from(WEIGHT_THRESHOLD))
+                    .then_some((index as i32, *value as f32))
+            })
+            .collect(),
+    }
 }
 
-fn write_model(out: &Path, classes: &[String], weights: &[Vec<f64>]) -> Result<(), String> {
+fn write_model(out: &Path, classes: &[String], weights: &[ClassWeights]) -> Result<(), String> {
     let mut bytes = vec![0u8; 12];
     for (label, weight) in classes.iter().zip(weights) {
         let mut label_bytes = [0u8; LABEL_BYTES];
@@ -273,12 +300,10 @@ fn write_model(out: &Path, classes: &[String], weights: &[Vec<f64>]) -> Result<(
         }
         label_bytes[..source.len()].copy_from_slice(source);
         bytes.extend_from_slice(&label_bytes);
-        bytes.extend_from_slice(&(weight[0] as f32).to_le_bytes());
-        for (index, value) in weight.iter().enumerate().skip(1) {
-            if value.abs() >= f64::from(WEIGHT_THRESHOLD) {
-                bytes.extend_from_slice(&(index as i32).to_le_bytes());
-                bytes.extend_from_slice(&(*value as f32).to_le_bytes());
-            }
+        bytes.extend_from_slice(&weight.bias.to_le_bytes());
+        for (index, value) in &weight.features {
+            bytes.extend_from_slice(&index.to_le_bytes());
+            bytes.extend_from_slice(&value.to_le_bytes());
         }
         bytes.extend_from_slice(&(-1i32).to_le_bytes());
         bytes.extend_from_slice(&0f32.to_le_bytes());
@@ -287,8 +312,10 @@ fn write_model(out: &Path, classes: &[String], weights: &[Vec<f64>]) -> Result<(
     bytes[0..4].copy_from_slice(&(size ^ MAGIC).to_le_bytes());
     bytes[4..8].copy_from_slice(&VERSION.to_le_bytes());
     bytes[8..12].copy_from_slice(&(classes.len() as u32).to_le_bytes());
-    let mut file = fs::File::create(out).map_err(|error| format!("create {}: {error}", out.display()))?;
-    file.write_all(&bytes).map_err(|error| format!("write {}: {error}", out.display()))?;
+    let mut file =
+        fs::File::create(out).map_err(|error| format!("create {}: {error}", out.display()))?;
+    file.write_all(&bytes)
+        .map_err(|error| format!("write {}: {error}", out.display()))?;
     Ok(())
 }
 
@@ -297,6 +324,7 @@ struct Options {
     inputs: Vec<PathBuf>,
     max_iterations: usize,
     limit_classes: Option<usize>,
+    jobs: Option<usize>,
     seed: u64,
 }
 
@@ -320,7 +348,6 @@ fn train(options: &Options) -> Result<(), String> {
     let mut classes: BTreeSet<String> = examples.iter().map(|item| item.label.clone()).collect();
     if let Some(limit) = options.limit_classes {
         classes = classes.into_iter().take(limit).collect();
-        examples.retain(|item| classes.contains(&item.label));
     }
     if examples.is_empty() || classes.is_empty() {
         return Err("no training examples".to_owned());
@@ -330,23 +357,56 @@ fn train(options: &Options) -> Result<(), String> {
         .flat_map(|item| item.features.iter().map(|(index, _)| *index))
         .max()
         .unwrap_or(0) as usize;
-    println!("{} examples, {} classes, max feature {}", examples.len(), classes.len(), max_dim);
-    let mut weights = Vec::new();
-    for (number, label) in classes.iter().enumerate() {
-        if number % 100 == 0 {
-            eprintln!("training {number}/{}: {label}", classes.len());
-        }
-        weights.push(train_one(
-            &examples,
-            label,
-            max_dim,
-            options.max_iterations,
-            options.seed.wrapping_add(number as u64),
-        ));
-    }
     let classes: Vec<String> = classes.into_iter().collect();
+    println!(
+        "{} examples, {} classes, max feature {}",
+        examples.len(),
+        classes.len(),
+        max_dim
+    );
+    let mut builder = rayon::ThreadPoolBuilder::new();
+    if let Some(jobs) = options.jobs {
+        if jobs == 0 {
+            return Err("--jobs must be greater than zero".to_owned());
+        }
+        builder = builder.num_threads(jobs);
+    }
+    let pool = builder
+        .build()
+        .map_err(|error| format!("build thread pool: {error}"))?;
+    let completed = AtomicUsize::new(0);
+    let started = Instant::now();
+    let weights: Vec<ClassWeights> = pool.install(|| {
+        classes
+            .par_iter()
+            .enumerate()
+            .map(|(number, label)| {
+                let weights = train_one(
+                    &examples,
+                    label,
+                    max_dim,
+                    options.max_iterations,
+                    options.seed.wrapping_add(number as u64),
+                );
+                let done = completed.fetch_add(1, Ordering::Relaxed) + 1;
+                if done.is_multiple_of(100) || done == classes.len() {
+                    eprintln!(
+                        "trained {done}/{} classes in {:.1}s",
+                        classes.len(),
+                        started.elapsed().as_secs_f64()
+                    );
+                }
+                weights
+            })
+            .collect()
+    });
     write_model(&options.output, &classes, &weights)?;
-    println!("wrote {}", options.output.display());
+    println!(
+        "wrote {} ({} classes, {:.1}s)",
+        options.output.display(),
+        classes.len(),
+        started.elapsed().as_secs_f64()
+    );
     Ok(())
 }
 
@@ -355,18 +415,42 @@ fn main() {
     let mut inputs = Vec::new();
     let mut max_iterations = 2000;
     let mut limit_classes = None;
+    let mut jobs = None;
     let mut seed = 1;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--out" => output = Some(PathBuf::from(args.next().expect("--out needs a path"))),
             "--max-iterations" => {
-                max_iterations = args.next().expect("needs a number").parse().expect("number")
+                max_iterations = args
+                    .next()
+                    .expect("needs a number")
+                    .parse()
+                    .expect("number")
             }
             "--limit-classes" => {
-                limit_classes = Some(args.next().expect("needs a number").parse().expect("number"))
+                limit_classes = Some(
+                    args.next()
+                        .expect("needs a number")
+                        .parse()
+                        .expect("number"),
+                )
             }
-            "--seed" => seed = args.next().expect("needs a number").parse().expect("number"),
+            "--jobs" => {
+                jobs = Some(
+                    args.next()
+                        .expect("needs a number")
+                        .parse()
+                        .expect("number"),
+                )
+            }
+            "--seed" => {
+                seed = args
+                    .next()
+                    .expect("needs a number")
+                    .parse()
+                    .expect("number")
+            }
             other if other.starts_with('-') => {
                 eprintln!("unknown argument: {other}");
                 std::process::exit(2);
@@ -375,7 +459,7 @@ fn main() {
         }
     }
     let Some(output) = output else {
-        eprintln!("usage: ink-train --out MODEL [--max-iterations N] [--limit-classes N] [--seed N] INPUT.s...");
+        eprintln!("usage: ink-train --out MODEL [--max-iterations N] [--limit-classes N] [--jobs N] [--seed N] INPUT.s...");
         std::process::exit(2);
     };
     if inputs.is_empty() {
@@ -387,6 +471,7 @@ fn main() {
         inputs,
         max_iterations,
         limit_classes,
+        jobs,
         seed,
     }) {
         eprintln!("{error}");
@@ -416,6 +501,7 @@ mod tests {
             inputs: vec![corpus],
             max_iterations: 500,
             limit_classes: None,
+            jobs: Some(1),
             seed: 1,
         })
         .unwrap();
@@ -427,11 +513,7 @@ mod tests {
             (700.0, 500.0),
             (900.0, 500.0),
         ]];
-        let vertical = vec![vec![
-            (500.0, 100.0),
-            (500.0, 500.0),
-            (500.0, 900.0),
-        ]];
+        let vertical = vec![vec![(500.0, 100.0), (500.0, 500.0), (500.0, 900.0)]];
         let h = fcitx5_ink_handwriting::handwriting_recognize(
             model.to_str().unwrap(),
             &horizontal,
@@ -448,5 +530,26 @@ mod tests {
         .unwrap();
         assert_eq!(h.first().map(String::as_str), Some("一"));
         assert_eq!(v.first().map(String::as_str), Some("丨"));
+    }
+
+    #[test]
+    fn parallel_training_is_deterministic() {
+        let directory = tempfile::tempdir().unwrap();
+        let corpus = directory.path().join("train.s");
+        let serial = directory.path().join("serial.model");
+        let parallel = directory.path().join("parallel.model");
+        fs::write(&corpus, CORPUS).unwrap();
+        for (output, jobs) in [(serial.clone(), 1), (parallel.clone(), 4)] {
+            train(&Options {
+                output,
+                inputs: vec![corpus.clone()],
+                max_iterations: 500,
+                limit_classes: None,
+                jobs: Some(jobs),
+                seed: 1,
+            })
+            .unwrap();
+        }
+        assert_eq!(fs::read(serial).unwrap(), fs::read(parallel).unwrap());
     }
 }

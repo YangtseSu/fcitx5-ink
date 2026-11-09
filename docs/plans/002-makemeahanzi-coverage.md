@@ -1,7 +1,8 @@
 # 002: Expand character coverage with Make Me a Hanzi
 
-Status: data preparation implemented; training pending
-Date: 2026-11-08
+Status: full zh_CN coverage model trained and smoke-evaluated; real-writer
+evaluation and packaging pending
+Date: 2026-11-08; updated: 2026-11-09
 
 ## Goal
 
@@ -21,6 +22,12 @@ project, not an accuracy project for existing common characters.
   with `--only-xml` (local, ignored).
 - [x] Implement `tools/ink-train`, a Rust port of `zinnia_learn` (same
   features, coordinate descent and binary model format).
+- [x] Train classes in parallel, keep sparse weights in memory and write the
+  model without a dense per-class vector.
+- [x] Train the full 6,763-class baseline and the 9,574-class zh_CN coverage
+  model.
+- [x] Pass the panel zh_CN self-test and check that new classes are emitted
+  from their MMH samples.
 
 Coverage:
 
@@ -33,16 +40,16 @@ Coverage:
 ## Missing prerequisites
 
 - **Zinnia trainer**: `zinnia_learn` is not installed and Arch does not provide
-  a `zinnia` package. `tools/ink-train` now replaces it for the coverage
+  a `zinnia` package. `tools/ink-train` replaces it for the coverage
   experiment; upstream zinnia 0.07 is only needed for a parity comparison.
-- **Training compute**: a full 9.5k-class SVM is CPU-intensive; measure time and
-  model size before committing to all classes.
+- **Training compute**: resolved for zh_CN. The 9,574-class model trains in
+  about one minute on 12 cores with sparse weights.
 - **Model packaging**: the generated `.s` files and the trained model are
   derived from Arphic-licensed data; include the Arphic notice in the model data
   package.
-- **Evaluation**: there is no real held-out set; a coverage smoke test can prove
-  the new classes load and are emitted, but not that recognition is useful for
-  real writers.
+- **Evaluation**: there is no real held-out set; the MMH check proves the new
+  classes load and are emitted, but not that recognition is useful for real
+  writers.
 
 ## Work
 
@@ -74,14 +81,46 @@ Coverage:
    real-script behavior. This is not a second human writing style; it is a
    font-derived second trajectory.
 6. Smoke test in `fcitx5-ink-panel`: common characters still work, new classes
-   can be emitted.
-7. Record model size, latency and class count.
+   can be emitted. (Done for zh_CN.)
+7. Record model size, latency and class count. (Done for zh_CN.)
 8. Optional: repeat for zh_TW after checking demand. Do not use MMH as the
    Japanese source; use AnimCJK/Tomoe for Japanese forms.
+9. Collect writer-separated samples and compare the coverage model against the
+   baseline on those samples.
+
+## Measured zh_CN run
+
+On a 12-core machine with `--jobs 12 --max-iterations 2000`:
+
+| Model | Classes | Model size | Wall time |
+|---|---:|---:|---:|
+| Tomoe baseline | 6,763 | 26.8 MB | 28.7 s |
+| Tomoe + MMH new | 9,574 | 41.5 MB | 69.1 s |
+
+The sparse and earlier dense implementations produced byte-identical models.
+`--limit-classes 100` with all 6,763 negatives took 2.9 s on one thread and
+0.5 s on 12 threads at 200 iterations. A parallel determinism test compares
+one-worker and four-worker models byte for byte.
+
+Evaluation:
+
+| Data | Model | Top-1 | Top-5 | Top-12 | Median ms | P95 ms |
+|---|---|---:|---:|---:|---:|---:|
+| 2,811 MMH new classes | coverage | 98.83% | 99.54% | 99.86% | 31.03 | 39.33 |
+| 2,811 MMH new classes | baseline | 0.00% | 0.00% | 0.00% | 20.19 | 24.88 |
+| first 500 Tomoe zh_CN | coverage | 98.40% | 99.60% | 99.80% | 21.93 | 29.17 |
+| first 500 Tomoe zh_CN | baseline | 98.80% | 99.60% | 99.80% | 14.69 | 18.32 |
+
+The panel zh_CN self-test passes with the coverage model. The MMH check is a
+coverage test, not a held-out generalization benchmark: the model was trained
+on those exact trajectories. The first 500 Tomoe records are also training
+samples; they only show that existing classes still work and quantify the
+latency/accuracy cost of the larger model.
 
 ## Acceptance
 
-- New model loads in the panel and the three-language self-test still passes.
+- New model loads in the panel and the zh_CN self-test passes; the zh_TW and ja
+  models are unchanged.
 - New classes are emitted for their MMH canonical samples.
 - Model size and latency are recorded; an increase above the agreed budget is
   documented before shipping.
@@ -99,11 +138,10 @@ binary model format. A 100-class smoke run and a two-class end-to-end test pass;
 a two-class model trained by upstream `zinnia_learn` and by the Rust trainer
 produced the same top-1 answers.
 
-Remaining before using it for a full model:
+Remaining:
 
-- benchmark a full ~9.5k-class run and add parallelism/optimizations if needed;
 - keep an upstream parity test for a small corpus in CI;
-- validate the resulting model in the panel and on real held-out strokes.
+- validate the resulting model on real held-out strokes.
 
 ## Risks
 
