@@ -5,7 +5,7 @@
 # fcitx5-ink-data package carries the handwriting models.
 
 pkgname=fcitx5-ink-git
-pkgver=0.1.0.r0.g0000000
+pkgver=0.1.0.r12.g36667c1
 pkgrel=1
 pkgdesc="Handwriting input tool for fcitx5 with a GTK4 panel (git)"
 arch=('x86_64' 'aarch64')
@@ -66,4 +66,8 @@ check() {
 
 package() {
   DESTDIR="$pkgdir" cmake --install "$srcdir/build"
+  install -d "$pkgdir/usr/share/licenses/$pkgname"
+  install -m644 "$pkgdir"/usr/share/licenses/fcitx5-ink/* \
+    "$pkgdir/usr/share/licenses/$pkgname/"
+  rm -rf "$pkgdir/usr/share/licenses/fcitx5-ink"
 }
