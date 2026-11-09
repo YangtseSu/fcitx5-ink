@@ -1,0 +1,24 @@
+| Language | Samples | Top-1 | Top-5 | Top-12 |
+|---|---:|---:|---:|---:|
+| zh_TW | 11853 | 99.41% | 99.96% | 99.97% |
+  zh_TW zh_TW-000117 expected 仵 got 忏 件 伒 住 仵
+  zh_TW zh_TW-000160 expected 但 got 佃 但 阻 杠 伿
+  zh_TW zh_TW-000370 expected 偶 got 釬 偶 偊 隅 佮
+  zh_TW zh_TW-000819 expected 反 got 友 反 夃 矸 片
+  zh_TW zh_TW-000831 expected 叨 got 叻 叨 忉 吜 哈
+  zh_TW zh_TW-000848 expected 吃 got 吒 吃 吐 穵 犵
+  zh_TW zh_TW-000876 expected 吩 got 吤 吩 吽 扮 礿
+  zh_TW zh_TW-000931 expected 咀 got 呾 咀 岨 坦 唄
+  zh_TW zh_TW-001028 expected 唔 got 浯 唔 呸 唑 哩
+  zh_TW zh_TW-001038 expected 唱 got 釬 唱 娼 淐 猖
+  zh_TW zh_TW-001078 expected 啶 got 釬 啶 掟 喵 崆
+  zh_TW zh_TW-001114 expected 喧 got 揎 喤 嗢 幅 萱
+  zh_TW zh_TW-001141 expected 嗑 got 嗌 溘 嗑 廅 搐
+  zh_TW zh_TW-001151 expected 嗝 got 塥 嗝 揎 嗐 嗙
+  zh_TW zh_TW-001152 expected 嗟 got 搓 嗌 嗟 嗊 溔
+  zh_TW zh_TW-001161 expected 嗯 got 摁 嗯 禗 幎 唲
+  zh_TW zh_TW-001217 expected 噌 got 增 噌 儈 嘸 噂
+  zh_TW zh_TW-001226 expected 噢 got 墺 噢 噭 鳴 噯
+  zh_TW zh_TW-001313 expected 圉 got 釬 圉 國 倖 且
+  zh_TW zh_TW-001442 expected 堂 got 釬 堂 萑 菖 茴
+note: these are Tomoe training samples, not a held-out generalization benchmark

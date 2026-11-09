@@ -1,0 +1,49 @@
+{
+  "source": "https://github.com/tegaki/tegaki/releases/tag/v0.3",
+  "engine_license": "GPL-2.0-or-later",
+  "model_license": "LGPL-2.1-or-later",
+  "assets": [
+    {
+      "name": "tegaki-wagomu-0.3.tar.gz",
+      "url": "https://github.com/tegaki/tegaki/releases/download/v0.3/tegaki-wagomu-0.3.tar.gz",
+      "size": 19191,
+      "sha256": "6a07f9a864a1901d48d01ca81ce5f021253eafe8269299b4cfa6e81fc2dda81a"
+    },
+    {
+      "name": "tegaki-wagomu-simplified-chinese-0.3.zip",
+      "url": "https://github.com/tegaki/tegaki/releases/download/v0.3/tegaki-wagomu-simplified-chinese-0.3.zip",
+      "size": 2205933,
+      "sha256": "462e5a7d71c90ed5edbf383553809475f71710ac3a4424c2eeb8e317adcf1773",
+      "member": "tegaki-wagomu-simplified-chinese-0.3/handwriting-zh_CN.model",
+      "member_size": 7900192,
+      "member_sha256": "b97bf8b0abfd89675d18e56fbe758c538b3422ef3f79ecdc38e30e693b8e4668"
+    },
+    {
+      "name": "tegaki-wagomu-japanese-0.3.zip",
+      "url": "https://github.com/tegaki/tegaki/releases/download/v0.3/tegaki-wagomu-japanese-0.3.zip",
+      "size": 2203883,
+      "sha256": "937c15e0fdfdb6bf855640572e2ab75ccfd8f24d1fff9c353b56f38e5a2c923a",
+      "member": "tegaki-wagomu-japanese-0.3/handwriting-ja.model",
+      "member_size": 8432016,
+      "member_sha256": "70282aa21ede6fefd25cb37c3b297a6b1c484f63abe6c9a1b996f9f75a7304d4"
+    },
+    {
+      "name": "tegaki-wagomu-japanese-joyo-0.3.zip",
+      "url": "https://github.com/tegaki/tegaki/releases/download/v0.3/tegaki-wagomu-japanese-joyo-0.3.zip",
+      "size": 575378,
+      "sha256": "025e7bae374dfc834c1d0008220866cadea58cc621a587c4b87f98942fd46872",
+      "member": "tegaki-wagomu-japanese-joyo-0.3/joyo-kanji.model",
+      "member_size": 2146752,
+      "member_sha256": "a6598048e52d39e689b09ba45fe6a6caf7f64954cd055d6b470541b6a7146c47"
+    },
+    {
+      "name": "tegaki-wagomu-japanese-kyoiku-0.3.zip",
+      "url": "https://github.com/tegaki/tegaki/releases/download/v0.3/tegaki-wagomu-japanese-kyoiku-0.3.zip",
+      "size": 285141,
+      "sha256": "e1613751678ab6148b951f8ddbc7819ce64c65d1a23c136eb3c6b58ca0cb0c6d",
+      "member": "tegaki-wagomu-japanese-kyoiku-0.3/kyoiku-kanji.model",
+      "member_size": 1056080,
+      "member_sha256": "3c02e65dd0e1663d2ad436385559c951b95e87fd9869ba4088889c478aa6b858"
+    }
+  ]
+}

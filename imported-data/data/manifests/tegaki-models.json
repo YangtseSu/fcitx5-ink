@@ -1,0 +1,33 @@
+{
+  "source": "https://github.com/tegaki/tegaki/releases/tag/v0.3",
+  "license": "LGPL-2.1-or-later",
+  "artifacts": [
+    {
+      "name": "handwriting-zh_CN.model",
+      "url": "https://github.com/tegaki/tegaki/releases/download/v0.3/tegaki-zinnia-simplified-chinese-0.3.zip",
+      "member": "tegaki-zinnia-simplified-chinese-0.3/handwriting-zh_CN.model",
+      "size": 26834816,
+      "sha256": "e16153d1ff267cd479aea260d6f71a3edda8b4ba06db2d121513adda65a4449e"
+    },
+    {
+      "name": "handwriting-zh_TW.model",
+      "url": "https://github.com/tegaki/tegaki/releases/download/v0.3/tegaki-zinnia-traditional-chinese-0.3.zip",
+      "member": "tegaki-zinnia-traditional-chinese-0.3/handwriting-zh_TW.model",
+      "size": 52210768,
+      "sha256": "cd47f16b64e7ecaa4c2813d0f98231dfea7b411f48be1ead5c9b2eeb19330b11"
+    },
+    {
+      "name": "handwriting-ja.model",
+      "url": "https://github.com/tegaki/tegaki/releases/download/v0.3/tegaki-zinnia-japanese-0.3.zip",
+      "member": "tegaki-zinnia-japanese-0.3/handwriting-ja.model",
+      "size": 26068668,
+      "sha256": "d58618576d12c1ea38992606f30d19158a0a3beda3ac23bacccf1e48e651f2b2"
+    },
+    {
+      "name": "HandwritingModel-LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/tegaki/tegaki/7a74e442c4130cccc226a7e7c2b683ac94c0cccb/tegaki-models/LGPL",
+      "size": 26430,
+      "sha256": "a190dc9c8043755d90f8b0a75fa66b9e42d4af4c980bf5ddc633f0124db3cee7"
+    }
+  ]
+}
