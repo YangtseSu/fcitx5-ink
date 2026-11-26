@@ -103,19 +103,18 @@ flow is untouched.
 install -d -o ink -g ink -m 750 /srv/ink/eval-targets /srv/ink/eval-data
 rsync -av --delete tools/collect/targets/eval/ root@<VPS>:/srv/ink/eval-targets/
 install -m 640 -o root -g ink /tmp/ink-deploy/eval-collect.example.json /etc/ink/eval-collect.json
-token=$(openssl rand -hex 16)
 secret=$(openssl rand -hex 32)
-sed -i "s/REPLACE_WITH_RANDOM_SECRET/$secret/; s/REPLACE_WITH_EVAL_TOKEN/$token/" /etc/ink/eval-collect.json
+sed -i "s/REPLACE_WITH_RANDOM_SECRET/$secret/" /etc/ink/eval-collect.json
 install -m 644 /tmp/ink-deploy/ink-eval.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now ink-eval
 nginx -t && systemctl reload nginx
 ```
 
-Set `eval_token` in `/etc/ink/eval-collect.json`; open
-`https://<DOMAIN>/eval`, enter the token, and write the 300-character pool.
-The `ink_eval_` cookies keep the evaluation writer separate from the training
-writer. Export with the eval config:
+The eval mode has no token: `eval_token` is empty, and `https://<DOMAIN>/eval`
+is unlisted (`Disallow: /eval` and `X-Robots-Tag: noindex`). Open it directly
+and write the 300-character pool. The `ink_eval_` cookies keep the evaluation
+writer separate from the training writer. Export with the eval config:
 
 ```sh
 python3 /srv/ink/app/admin.py --config /etc/ink/eval-collect.json \

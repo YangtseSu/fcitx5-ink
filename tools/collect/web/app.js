@@ -64,10 +64,6 @@ const STRINGS = {
     privacy_p3: "样本以 CC BY 4.0 发布；站点代码以 GPL-3.0-or-later 发布。",
     footer_note: "墨笔（fcitx5-ink）· 样本以 CC BY 4.0 发布",
     eval_hero: "维护者评估模式：写留出评估集。",
-    eval_note: "这里的样本进入评估集，不参与训练；每语言 300 个字，写完可以停，进度自动保存。",
-    eval_token_label: "评估口令",
-    eval_login: "进入评估",
-    eval_login_error: "口令不对，或登录太频繁。",
     eval_new_writer: "换一位书写者",
     eval_stats_line: "评估集：本池已写 {samples} 份样本 · {writers} 位书写者 · 覆盖 {chars}/300 个字",
     eval_progress: "已写 {written} 份 · 本池还剩 {left} 个字",
@@ -123,10 +119,6 @@ const STRINGS = {
     privacy_p3: "樣本以 CC BY 4.0 發布；網站程式碼以 GPL-3.0-or-later 發布。",
     footer_note: "墨筆（fcitx5-ink）· 樣本以 CC BY 4.0 發布",
     eval_hero: "維護者評估模式：寫出留出評估集。",
-    eval_note: "這裡的樣本進入評估集，不參與訓練；每語言 300 個字，寫完可以停，進度會自動儲存。",
-    eval_token_label: "評估口令",
-    eval_login: "進入評估",
-    eval_login_error: "口令不對，或登入太頻繁。",
     eval_new_writer: "換一位書寫者",
     eval_stats_line: "評估集：本池已寫 {samples} 份樣本 · {writers} 位書寫者 · 涵蓋 {chars}/300 個字",
     eval_progress: "已寫 {written} 份 · 本池還剩 {left} 個字",
@@ -182,10 +174,6 @@ const STRINGS = {
     privacy_p3: "サンプルは CC BY 4.0、サイトのコードは GPL-3.0-or-later で公開されます。",
     footer_note: "墨筆（fcitx5-ink）· サンプルは CC BY 4.0",
     eval_hero: "管理者用の評価モード：ホールドアウト評価セットを書きます。",
-    eval_note: "ここのサンプルは評価セットに入り、訓練には使いません。言語ごとに 300 文字、書き終えたら停止して構いません。進捗は自動保存されます。",
-    eval_token_label: "評価トークン",
-    eval_login: "評価を始める",
-    eval_login_error: "トークンが違うか、ログインが多すぎます。",
     eval_new_writer: "別の書き手に切り替える",
     eval_stats_line: "評価セット：このプールは {samples} 件 · {writers} 人の書き手 · {chars}/300 文字をカバー",
     eval_progress: "書き済み {written} 件 · このプールは残り {left} 文字",
@@ -208,11 +196,7 @@ const el = {
   submit: document.getElementById("submit"),
   restart: document.getElementById("restart"),
   consent: document.getElementById("consent"),
-  evalAuth: document.getElementById("eval-auth"),
   writeBody: document.getElementById("write-body"),
-  evalToken: document.getElementById("eval-token"),
-  evalLogin: document.getElementById("eval-login"),
-  evalError: document.getElementById("eval-error"),
   evalNewWriter: document.getElementById("eval-new-writer"),
 };
 
@@ -813,15 +797,6 @@ function wireEvents() {
   el.canvas.addEventListener("pointerup", endStroke);
   el.canvas.addEventListener("pointercancel", endStroke);
   el.canvas.addEventListener("contextmenu", (event) => event.preventDefault());
-  if (el.evalLogin) el.evalLogin.addEventListener("click", evalLogin);
-  if (el.evalToken) {
-    el.evalToken.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        evalLogin();
-      }
-    });
-  }
   if (el.evalNewWriter) el.evalNewWriter.addEventListener("click", evalNewWriter);
   document.addEventListener("keydown", (event) => {
     const tag = (event.target && event.target.tagName
@@ -837,52 +812,6 @@ function wireEvents() {
       clearCanvas();
     }
   });
-}
-
-async function ensureEvalAuth() {
-  if (MODE !== "eval") return true;
-  try {
-    const response = await fetch(`${API_BASE}/eval/status`, { cache: "no-store" });
-    if (response.ok) {
-      const data = await response.json();
-      if (data.ok === true) return true;
-    }
-  } catch {
-    /* fall through to the token form */
-  }
-  return false;
-}
-
-async function startWrite() {
-  checkSession();
-  loadStats();
-  await switchLanguage(model.lang);
-}
-
-async function evalLogin() {
-  const token = el.evalToken ? el.evalToken.value.trim() : "";
-  if (!token) {
-    if (el.evalError) el.evalError.textContent = t("eval_login_error");
-    return;
-  }
-  if (el.evalError) el.evalError.textContent = "";
-  try {
-    const response = await fetch(`${API_BASE}/eval/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
-    });
-    if (!response.ok) {
-      if (el.evalError) el.evalError.textContent = t("eval_login_error");
-      return;
-    }
-    el.evalAuth.hidden = true;
-    el.writeBody.hidden = false;
-    document.body.classList.add("eval-authed");
-    await startWrite();
-  } catch {
-    if (el.evalError) el.evalError.textContent = t("status_offline");
-  }
 }
 
 async function evalNewWriter() {
@@ -906,14 +835,6 @@ async function init() {
   applyLanguage();
   redraw();
   wireEvents();
-  if (MODE === "eval") {
-    el.evalAuth.hidden = false;
-    el.writeBody.hidden = true;
-    if (!(await ensureEvalAuth())) return;
-    el.evalAuth.hidden = true;
-    el.writeBody.hidden = false;
-    document.body.classList.add("eval-authed");
-  }
   checkSession();
   loadStats();
   await switchLanguage(model.lang);

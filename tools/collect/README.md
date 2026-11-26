@@ -166,8 +166,9 @@ python3 tools/collect/to_zinnia.py --input /tmp/ink-export \
 
 `/eval` is a separate service and database for the held-out 300-character
 pool; the public site stays on the training pool. The eval service uses
-`eval-collect.example.json` (`cookie_prefix: ink_eval_`, its own `eval_token`
-and `data_dir`), the nginx `/eval-api/` proxy, and `targets/eval`.
+`eval-collect.example.json` (`cookie_prefix: ink_eval_`, its own `data_dir`,
+and an empty `eval_token`), the nginx `/eval-api/` proxy, and `targets/eval`.
+The page is unlisted; `robots.txt` and nginx send `noindex`.
 
 ```sh
 python3 /srv/ink/app/admin.py --config /etc/ink/eval-collect.json \
