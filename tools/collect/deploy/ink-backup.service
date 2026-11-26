@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Unit]
+Description=Back up fcitx5-ink handwriting samples
+
+[Service]
+Type=oneshot
+User=ink
+Group=ink
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+ReadWritePaths=/srv/ink/data /srv/ink/backup
+ExecStart=/usr/bin/python3 /srv/ink/app/admin.py --config /etc/ink/collect.json backup --dir /srv/ink/backup --keep 14

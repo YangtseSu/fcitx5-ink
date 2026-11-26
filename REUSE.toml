@@ -255,3 +255,33 @@ path = "LICENSES/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "the respective license authors"
 SPDX-License-Identifier = "GPL-3.0-or-later OR LGPL-2.1-or-later"
+
+[[annotations]]
+path = "tools/collect/README.md"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "tools/collect/deploy/README.md"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "tools/collect/deploy/collect.example.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "tools/collect/targets/eval/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "the Tomoe contributors"
+SPDX-License-Identifier = "LGPL-2.1-or-later"
+
+[[annotations]]
+path = "tools/collect/targets/train/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>; the 义务教育语文课程标准; the 常用國字/常用漢字 standard authors; Unicode, Inc."
+SPDX-License-Identifier = "GPL-3.0-or-later"

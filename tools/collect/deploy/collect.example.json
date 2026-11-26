@@ -1,0 +1,17 @@
+{
+  "listen": "127.0.0.1",
+  "port": 8081,
+  "domain": "886945.xyz",
+  "data_dir": "/srv/ink/data",
+  "targets_dir": "/srv/ink/targets",
+  "secret": "REPLACE_WITH_RANDOM_SECRET",
+  "difficulty": 12,
+  "session_ttl": 7200,
+  "challenge_ttl": 600,
+  "limits": {
+    "samples_per_hour": 300,
+    "samples_per_day": 1000,
+    "sessions_per_hour": 30,
+    "global_per_day": 5000
+  }
+}

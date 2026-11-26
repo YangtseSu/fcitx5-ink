@@ -1,0 +1,109 @@
+<!doctype html>
+<!-- SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com> -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f6f2e9">
+  <meta name="description" content="为墨笔（fcitx5-ink）贡献匿名手写笔画，用于训练和评估手写识别模型。">
+  <title>墨笔 · 手写样本</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <span class="seal" aria-hidden="true">墨</span>
+      <span class="brand-text">
+        <strong data-i18n="brand">墨笔</strong>
+        <span data-i18n="brand_sub">手写样本</span>
+      </span>
+    </a>
+    <div class="header-actions">
+      <label class="lang-picker">
+        <span class="sr-only" data-i18n="language">语言</span>
+        <select id="lang-select">
+          <option value="zh_CN" selected>简体中文</option>
+          <option value="zh_TW">繁體中文</option>
+          <option value="ja">日本語</option>
+        </select>
+      </label>
+      <a class="ghost-link" href="https://github.com/YangtseSu/fcitx5-ink" rel="noopener">GitHub</a>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <p class="eyebrow">fcitx5-ink</p>
+      <h1 data-i18n="hero_title">写 20 个字，帮墨笔更懂手写。</h1>
+      <p class="lead" data-i18n="hero_lead">墨笔（fcitx5-ink）是一个 fcitx5 手写输入工具。这里收集的匿名笔画会进入训练池，用于训练和评估手写识别模型，让它在更多写法上认得更准。不需要账号，不收集姓名或邮箱。</p>
+      <p class="stats-line" id="stats-line" aria-live="polite"></p>
+      <p class="round-note" data-i18n="round_note">每一轮 20 个字，来自训练池；写完就可以停，想多写可以再来一轮。</p>
+      <a class="button primary hero-cta" href="#write" data-i18n="start">开始书写</a>
+    </section>
+
+    <section class="write-card" id="write" aria-labelledby="write-title">
+      <h2 class="sr-only" id="write-title" data-i18n="write_title">书写</h2>
+      <div class="write-head">
+        <div class="target">
+          <div class="target-char" id="target-char" role="img" aria-label="目标字：永">永</div>
+          <p class="target-hint" data-i18n="write_this">请书写这个字</p>
+        </div>
+        <div class="write-meta">
+          <p class="progress" id="progress"></p>
+          <p class="status" id="status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <div class="canvas-shell">
+        <canvas id="canvas" width="420" height="420" data-i18n-aria="canvas_aria" aria-label="书写区域">需要启用 JavaScript 才能书写。</canvas>
+      </div>
+
+      <div class="controls">
+        <button type="button" class="button" id="undo" data-i18n="undo">撤销</button>
+        <button type="button" class="button" id="clear" data-i18n="clear">清空</button>
+        <button type="button" class="button" id="skip" data-i18n="skip">跳过</button>
+        <button type="button" class="button primary" id="submit" data-i18n="submit" disabled>提交</button>
+      </div>
+      <button type="button" class="button primary restart" id="restart" data-i18n="restart" hidden>再来一轮</button>
+
+      <label class="consent">
+        <input type="checkbox" id="consent">
+        <span data-i18n="consent_text">我同意将这份手写样本以 CC BY 4.0 协议发布，并用于训练和评估手写识别模型。我确认这是我本人的书写，且不包含个人信息。</span>
+      </label>
+      <p class="license-note">
+        <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener">CC BY 4.0</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/YangtseSu/fcitx5-ink/blob/main/docs/data.md" rel="noopener" data-i18n="data_policy">数据说明</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/YangtseSu/fcitx5-ink" rel="noopener" data-i18n="source_code">源代码</a>
+      </p>
+      <noscript><p class="status error">需要启用 JavaScript 才能书写。</p></noscript>
+    </section>
+
+    <section class="info-grid">
+      <article>
+        <h2 data-i18n="about_title">为什么要收集</h2>
+        <p data-i18n="about_p1">手写识别需要大量真实写法。训练池按常用标准字表覆盖：简体 3,500、繁体 4,808、日文 2,136 个常用字和假名；字序按使用频率排列。</p>
+        <p data-i18n="about_p2">训练池和评估集分开：评估集是每语言 300 个留出字，由维护者用不同书写者收集；同一书写者不会同时进入两边。</p>
+        <p data-i18n="about_p3">样本以 CC BY 4.0 发布，任何人都可以复用；项目代码以 GPL-3.0-or-later 发布。</p>
+      </article>
+      <article>
+        <h2 data-i18n="privacy_title">隐私与许可</h2>
+        <p data-i18n="privacy_p1">不收集姓名、邮箱或原始 IP。浏览器里只保存一个随机书写者编号，用来把同一人的样本分组；IP 只以加盐哈希形式用于限流。</p>
+        <p data-i18n="privacy_p2">样本包含目标字、笔画坐标、书写语言和匿名编号。请不要书写含有个人信息的内容。想删除自己的样本，请通过 GitHub 联系。</p>
+        <p data-i18n="privacy_p3">样本以 CC BY 4.0 发布；站点代码以 GPL-3.0-or-later 发布。</p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p data-i18n="footer_note">墨笔（fcitx5-ink）· 样本以 CC BY 4.0 发布</p>
+    <p><a href="https://github.com/YangtseSu/fcitx5-ink" rel="noopener">GitHub</a></p>
+  </footer>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
