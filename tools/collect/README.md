@@ -162,6 +162,22 @@ python3 tools/collect/to_zinnia.py --input /tmp/ink-export \
   --language zh_CN --out /tmp/web-zh_CN.s
 ```
 
+## Evaluation mode (maintainer)
+
+`/eval` is a separate service and database for the held-out 300-character
+pool; the public site stays on the training pool. The eval service uses
+`eval-collect.example.json` (`cookie_prefix: ink_eval_`, its own `eval_token`
+and `data_dir`), the nginx `/eval-api/` proxy, and `targets/eval`.
+
+```sh
+python3 /srv/ink/app/admin.py --config /etc/ink/eval-collect.json \
+  export --out /tmp/ink-eval-export
+```
+
+The evaluation writer is kept separate from training by both the cookie prefix
+and the separate database. Use a fresh browser for each evaluation writer, or
+press "换一位书写者" to clear the eval writer/session.
+
 ## Deployment
 
 See [deploy/README.md](deploy/README.md). The service runs as an unprivileged

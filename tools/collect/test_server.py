@@ -142,6 +142,50 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(manifest["writers"][0]["license"], "CC-BY-4.0")
 
 
+class EvalAuthTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.store = server.Store(Path(self.tempdir.name) / "samples.db")
+        self.config = {
+            "secret": "x" * 32,
+            "origin": "",
+            "difficulty": 12,
+            "challenge_ttl": 60,
+            "session_ttl": 600,
+            "limits": {
+                "samples_per_hour": 10,
+                "samples_per_day": 10,
+                "sessions_per_hour": 10,
+                "global_per_day": 10,
+            },
+            "eval_token": "token",
+            "cookie_prefix": "ink_eval_",
+        }
+        self.app = server.App(
+            self.config,
+            {"zh_CN": ["永"], "zh_TW": ["永"], "ja": ["あ"]},
+            self.store,
+        )
+
+    def tearDown(self) -> None:
+        self.store.close()
+        self.tempdir.cleanup()
+
+    def test_eval_cookie_roundtrip(self) -> None:
+        value = self.app.eval_cookie_value()
+        self.assertTrue(self.app.eval_cookie_ok(value))
+        self.assertFalse(self.app.eval_cookie_ok(None))
+        self.assertFalse(self.app.eval_cookie_ok("bad"))
+        expires, _, signature = value.partition(".")
+        self.assertFalse(self.app.eval_cookie_ok(f"0.{signature}"))
+
+    def test_eval_attempt_limit(self) -> None:
+        ip_hash = self.app.ip_hash("192.0.2.1")
+        for _ in range(10):
+            self.assertTrue(self.app.eval_attempt_allowed(ip_hash))
+        self.assertFalse(self.app.eval_attempt_allowed(ip_hash))
+
+
 class ChallengeTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()

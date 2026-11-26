@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Unit]
+Description=fcitx5-ink handwriting evaluation collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ink
+Group=ink
+WorkingDirectory=/srv/ink/app
+ExecStart=/usr/bin/python3 /srv/ink/app/server.py --config /etc/ink/eval-collect.json
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+ReadWritePaths=/srv/ink/eval-data
+
+[Install]
+WantedBy=multi-user.target

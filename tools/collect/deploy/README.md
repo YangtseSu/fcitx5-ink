@@ -94,7 +94,39 @@ Pull backups off the server regularly:
 rsync -av root@<VPS>:/srv/ink/backup/ ./ink-backup/
 ```
 
-## 7. Checks
+## 7. Evaluation mode (maintainer)
+
+The evaluation pool is a separate service and database; the public training
+flow is untouched.
+
+```sh
+install -d -o ink -g ink -m 750 /srv/ink/eval-targets /srv/ink/eval-data
+rsync -av --delete tools/collect/targets/eval/ root@<VPS>:/srv/ink/eval-targets/
+install -m 640 -o root -g ink /tmp/ink-deploy/eval-collect.example.json /etc/ink/eval-collect.json
+token=$(openssl rand -hex 16)
+secret=$(openssl rand -hex 32)
+sed -i "s/REPLACE_WITH_RANDOM_SECRET/$secret/; s/REPLACE_WITH_EVAL_TOKEN/$token/" /etc/ink/eval-collect.json
+install -m 644 /tmp/ink-deploy/ink-eval.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now ink-eval
+nginx -t && systemctl reload nginx
+```
+
+Set `eval_token` in `/etc/ink/eval-collect.json`; open
+`https://<DOMAIN>/eval`, enter the token, and write the 300-character pool.
+The `ink_eval_` cookies keep the evaluation writer separate from the training
+writer. Export with the eval config:
+
+```sh
+python3 /srv/ink/app/admin.py --config /etc/ink/eval-collect.json \
+  export --out /tmp/ink-eval-export
+```
+
+The nginx `/eval-api/` location proxies to `127.0.0.1:8082`; `/eval` serves the
+same page with `X-Robots-Tag: noindex`. The eval token is a credential: keep it
+out of the repository.
+
+## 8. Checks
 
 ```sh
 curl -I http://886945.xyz/

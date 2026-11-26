@@ -275,6 +275,12 @@ SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
 [[annotations]]
+path = "tools/collect/deploy/eval-collect.example.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Yangtse Su <yangtsesu@gmail.com>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
 path = "tools/collect/targets/eval/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "the Tomoe contributors"

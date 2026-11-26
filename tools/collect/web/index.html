@@ -46,6 +46,17 @@
 
     <section class="write-card" id="write" aria-labelledby="write-title">
       <h2 class="sr-only" id="write-title" data-i18n="write_title">书写</h2>
+      <div class="eval-auth eval-only" id="eval-auth" hidden>
+        <h2 data-i18n="eval_hero">维护者评估模式：写留出评估集。</h2>
+        <p class="eval-note" data-i18n="eval_note">这里的样本进入评估集，不参与训练；每语言 300 个字，写完可以停，进度自动保存。</p>
+        <label class="eval-token">
+          <span data-i18n="eval_token_label">评估口令</span>
+          <input type="password" id="eval-token" autocomplete="off">
+        </label>
+        <button type="button" class="button primary" id="eval-login" data-i18n="eval_login">进入评估</button>
+        <p class="eval-error" id="eval-error" role="alert"></p>
+      </div>
+      <div id="write-body">
       <div class="write-head">
         <div class="target">
           <div class="target-char" id="target-char" role="img" aria-label="目标字：永">永</div>
@@ -81,6 +92,8 @@
         <a href="https://github.com/YangtseSu/fcitx5-ink" rel="noopener" data-i18n="source_code">源代码</a>
       </p>
       <noscript><p class="status error">需要启用 JavaScript 才能书写。</p></noscript>
+      </div>
+      <button type="button" class="button eval-only eval-new-writer" id="eval-new-writer" data-i18n="eval_new_writer">换一位书写者</button>
     </section>
 
     <section class="info-grid">

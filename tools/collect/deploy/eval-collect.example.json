@@ -1,0 +1,19 @@
+{
+  "listen": "127.0.0.1",
+  "port": 8082,
+  "domain": "886945.xyz",
+  "data_dir": "/srv/ink/eval-data",
+  "targets_dir": "/srv/ink/eval-targets",
+  "secret": "REPLACE_WITH_RANDOM_SECRET",
+  "eval_token": "REPLACE_WITH_EVAL_TOKEN",
+  "cookie_prefix": "ink_eval_",
+  "difficulty": 12,
+  "session_ttl": 7200,
+  "challenge_ttl": 600,
+  "limits": {
+    "samples_per_hour": 600,
+    "samples_per_day": 3000,
+    "sessions_per_hour": 30,
+    "global_per_day": 5000
+  }
+}

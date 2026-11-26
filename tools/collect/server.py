@@ -87,6 +87,8 @@ def load_config(path: str | Path) -> dict:
     config["origin"] = f"https://{config['domain']}" if config["domain"] else ""
     config["data_dir"] = Path(raw.get("data_dir", "/srv/ink/data"))
     config["targets_dir"] = Path(raw.get("targets_dir", "/srv/ink/targets"))
+    config["eval_token"] = str(raw.get("eval_token", ""))
+    config["cookie_prefix"] = str(raw.get("cookie_prefix", "ink_"))
     config["difficulty"] = int(raw.get("difficulty", 16))
     config["session_ttl"] = int(raw.get("session_ttl", 7200))
     config["challenge_ttl"] = int(raw.get("challenge_ttl", 600))
@@ -454,6 +456,10 @@ class App:
         }
         self.store = store
         self.secret = config["secret"].encode("utf-8")
+        self.eval_token = str(config.get("eval_token", ""))
+        self.cookie_prefix = str(config.get("cookie_prefix", "ink_"))
+        self.eval_attempts: dict[str, list[float]] = {}
+        self.eval_lock = threading.Lock()
         self.difficulty = int(config["difficulty"])
         self.origin = config["origin"]
         self.challenges: dict[str, float] = {}
@@ -465,6 +471,40 @@ class App:
         except ValueError:
             normalized = ip
         return hmac.new(self.secret, normalized.encode("utf-8"), hashlib.sha256).hexdigest()
+
+    def eval_cookie_value(self) -> str:
+        expires = int(time.time()) + 86400
+        signature = hmac.new(
+            self.secret, f"eval:{expires}".encode("utf-8"), hashlib.sha256
+        ).hexdigest()
+        return f"{expires}.{signature}"
+
+    def eval_cookie_ok(self, value: str | None) -> bool:
+        if not value:
+            return False
+        expires, _, signature = value.partition(".")
+        if not expires.isdigit() or int(expires) < time.time():
+            return False
+        expected = hmac.new(
+            self.secret, f"eval:{expires}".encode("utf-8"), hashlib.sha256
+        ).hexdigest()
+        return hmac.compare_digest(signature, expected)
+
+    def eval_attempt_allowed(self, ip_hash: str) -> bool:
+        with self.eval_lock:
+            now = time.monotonic()
+            attempts = [
+                stamp
+                for stamp in self.eval_attempts.get(ip_hash, [])
+                if now - stamp < 3600
+            ]
+            if len(attempts) >= 10:
+                return False
+            attempts.append(now)
+            self.eval_attempts[ip_hash] = attempts
+            if len(self.eval_attempts) > 10000:
+                self.eval_attempts.clear()
+            return True
 
     def issue_challenge(self) -> dict:
         challenge = secrets.token_urlsafe(16)
@@ -583,11 +623,17 @@ def make_handler(app: App):
             return payload
 
         def cookie(self, name: str) -> str | None:
+            full = app.cookie_prefix + name
             for part in self.headers.get("Cookie", "").split(";"):
                 key, _, value = part.strip().partition("=")
-                if key == name:
+                if key == full:
                     return value
             return None
+
+        def eval_authed(self) -> bool:
+            if not app.eval_token:
+                return True
+            return app.eval_cookie_ok(self.cookie("auth"))
 
         def send_json(
             self, status: int, payload: dict, cookies: list[str] | None = None,
@@ -607,7 +653,7 @@ def make_handler(app: App):
 
         def cookie_header(self, name: str, value: str, max_age: int) -> str:
             return (
-                f"{name}={value}; Path=/; Max-Age={max_age}; "
+                f"{app.cookie_prefix}{name}={value}; Path=/; Max-Age={max_age}; "
                 "HttpOnly; Secure; SameSite=Lax"
             )
 
@@ -616,7 +662,16 @@ def make_handler(app: App):
                 parsed = urlsplit(self.path)
                 path = parsed.path
                 query = parse_qs(parsed.query, keep_blank_values=True)
-                if path == "/api/health":
+                if path not in ("/api/health", "/api/eval/status"):
+                    if not self.eval_authed():
+                        raise ApiError(
+                            HTTPStatus.UNAUTHORIZED,
+                            "eval_auth",
+                            "evaluation login required",
+                        )
+                if path == "/api/eval/status":
+                    self.send_json(HTTPStatus.OK, {"ok": self.eval_authed()})
+                elif path == "/api/health":
                     with app.store.lock:
                         app.store.conn.execute("SELECT 1").fetchone()
                     self.send_json(HTTPStatus.OK, {"ok": True})
@@ -654,7 +709,7 @@ def make_handler(app: App):
                 elif path == "/api/challenge":
                     self.send_json(HTTPStatus.OK, app.issue_challenge())
                 elif path == "/api/session":
-                    token = self.cookie("ink_session")
+                    token = self.cookie("session")
                     writer = app.store.get_session(token) if token else None
                     payload = {"ok": bool(writer)}
                     if writer:
@@ -679,8 +734,48 @@ def make_handler(app: App):
                 path = parsed.path
                 payload = self.read_json()
                 ip_hash = self.client_ip_hash()
+                if path != "/api/eval/login" and not self.eval_authed():
+                    raise ApiError(
+                        HTTPStatus.UNAUTHORIZED,
+                        "eval_auth",
+                        "evaluation login required",
+                    )
 
-                if path == "/api/session":
+                if path == "/api/eval/login":
+                    if not app.eval_token:
+                        raise ApiError(
+                            HTTPStatus.NOT_FOUND,
+                            "eval_disabled",
+                            "evaluation mode is not enabled",
+                        )
+                    if not app.eval_attempt_allowed(ip_hash):
+                        raise ApiError(
+                            HTTPStatus.TOO_MANY_REQUESTS,
+                            "rate",
+                            "too many evaluation login attempts",
+                        )
+                    token = payload.get("token")
+                    if not isinstance(token, str) or not hmac.compare_digest(
+                        token, app.eval_token
+                    ):
+                        raise ApiError(
+                            HTTPStatus.FORBIDDEN,
+                            "eval_token",
+                            "invalid evaluation token",
+                        )
+                    cookies = [
+                        self.cookie_header("auth", app.eval_cookie_value(), 86400)
+                    ]
+                    self.send_json(
+                        HTTPStatus.OK, {"ok": True}, cookies=cookies
+                    )
+                elif path == "/api/eval/reset":
+                    cookies = [
+                        self.cookie_header("writer", "", 0),
+                        self.cookie_header("session", "", 0),
+                    ]
+                    self.send_json(HTTPStatus.OK, {"ok": True}, cookies=cookies)
+                elif path == "/api/session":
                     if app.session_rate_limited(ip_hash):
                         raise ApiError(HTTPStatus.TOO_MANY_REQUESTS, "rate", "too many sessions")
                     challenge = payload.get("challenge")
@@ -688,7 +783,7 @@ def make_handler(app: App):
                     if not isinstance(challenge, str) or not isinstance(nonce, str):
                         raise ApiError(HTTPStatus.BAD_REQUEST, "challenge", "challenge required")
                     app.verify_challenge(challenge, nonce)
-                    writer = self.cookie("ink_writer")
+                    writer = self.cookie("writer")
                     if writer is None or not isinstance(writer, str) or not WRITER_RE.fullmatch(writer):
                         writer = app.new_writer()
                     app.store.ensure_writer(writer, consent=False)
@@ -696,8 +791,8 @@ def make_handler(app: App):
                         writer, ip_hash, int(app.config["session_ttl"])
                     )
                     cookies = [
-                        self.cookie_header("ink_writer", writer, 31536000),
-                        self.cookie_header("ink_session", token, int(app.config["session_ttl"])),
+                        self.cookie_header("writer", writer, 31536000),
+                        self.cookie_header("session", token, int(app.config["session_ttl"])),
                     ]
                     self.send_json(
                         HTTPStatus.OK,
@@ -705,7 +800,7 @@ def make_handler(app: App):
                         cookies=cookies,
                     )
                 elif path == "/api/samples":
-                    token = self.cookie("ink_session")
+                    token = self.cookie("session")
                     if not token:
                         raise ApiError(HTTPStatus.UNAUTHORIZED, "session", "session required")
                     writer = app.store.get_session(token)

@@ -5,11 +5,15 @@
 
 const LANGUAGES = ["zh_CN", "zh_TW", "ja"];
 const HTML_LANG = { zh_CN: "zh-CN", zh_TW: "zh-TW", ja: "ja" };
+const MODE = location.pathname === "/eval" ? "eval" : "train";
+const API_BASE = MODE === "eval" ? "/eval-api" : "/api";
+document.body.dataset.mode = MODE;
 const SIZE = 420;
 const BATCH_SIZE = 20;
 const STORAGE_LANG = "ink_lang_v1";
 const STORAGE_CONSENT = "ink_consent_v1";
-const roundKey = (lang) => `ink_round_v1_${lang}`;
+const roundKey = (lang) =>
+  MODE === "eval" ? `ink_eval_round_v1_${lang}` : `ink_round_v1_${lang}`;
 
 const STRINGS = {
   zh_CN: {
@@ -59,6 +63,17 @@ const STRINGS = {
     privacy_p2: "样本包含目标字、笔画坐标、书写语言和匿名编号。请不要书写含有个人信息的内容。想删除自己的样本，请通过 GitHub 联系。",
     privacy_p3: "样本以 CC BY 4.0 发布；站点代码以 GPL-3.0-or-later 发布。",
     footer_note: "墨笔（fcitx5-ink）· 样本以 CC BY 4.0 发布",
+    eval_hero: "维护者评估模式：写留出评估集。",
+    eval_note: "这里的样本进入评估集，不参与训练；每语言 300 个字，写完可以停，进度自动保存。",
+    eval_token_label: "评估口令",
+    eval_login: "进入评估",
+    eval_login_error: "口令不对，或登录太频繁。",
+    eval_new_writer: "换一位书写者",
+    eval_stats_line: "评估集：本池已写 {samples} 份样本 · {writers} 位书写者 · 覆盖 {chars}/300 个字",
+    eval_progress: "已写 {written} 份 · 本池还剩 {left} 个字",
+    eval_empty: "评估集还没有样本。",
+    eval_finished: "这一份评估集写完了，谢谢！",
+    eval_round_note: "本池每语言 300 个字；写完可以停，进度自动保存。",
   },
   zh_TW: {
     title: "墨筆 · 手寫樣本",
@@ -107,6 +122,17 @@ const STRINGS = {
     privacy_p2: "樣本包含目標字、筆畫座標、書寫語言和匿名編號。請不要書寫含有個人資料的內容。想刪除自己的樣本，請透過 GitHub 聯絡。",
     privacy_p3: "樣本以 CC BY 4.0 發布；網站程式碼以 GPL-3.0-or-later 發布。",
     footer_note: "墨筆（fcitx5-ink）· 樣本以 CC BY 4.0 發布",
+    eval_hero: "維護者評估模式：寫出留出評估集。",
+    eval_note: "這裡的樣本進入評估集，不參與訓練；每語言 300 個字，寫完可以停，進度會自動儲存。",
+    eval_token_label: "評估口令",
+    eval_login: "進入評估",
+    eval_login_error: "口令不對，或登入太頻繁。",
+    eval_new_writer: "換一位書寫者",
+    eval_stats_line: "評估集：本池已寫 {samples} 份樣本 · {writers} 位書寫者 · 涵蓋 {chars}/300 個字",
+    eval_progress: "已寫 {written} 份 · 本池還剩 {left} 個字",
+    eval_empty: "評估集還沒有樣本。",
+    eval_finished: "這一份評估集寫完了，謝謝！",
+    eval_round_note: "本池每語言 300 個字；寫完可以停，進度會自動儲存。",
   },
   ja: {
     title: "墨筆 · 手書きサンプル",
@@ -155,6 +181,17 @@ const STRINGS = {
     privacy_p2: "サンプルにはお題の文字、筆跡の座標、言語、匿名 ID が含まれます。個人情報を含む内容は書かないでください。自分のサンプルの削除を希望する場合は GitHub で連絡してください。",
     privacy_p3: "サンプルは CC BY 4.0、サイトのコードは GPL-3.0-or-later で公開されます。",
     footer_note: "墨筆（fcitx5-ink）· サンプルは CC BY 4.0",
+    eval_hero: "管理者用の評価モード：ホールドアウト評価セットを書きます。",
+    eval_note: "ここのサンプルは評価セットに入り、訓練には使いません。言語ごとに 300 文字、書き終えたら停止して構いません。進捗は自動保存されます。",
+    eval_token_label: "評価トークン",
+    eval_login: "評価を始める",
+    eval_login_error: "トークンが違うか、ログインが多すぎます。",
+    eval_new_writer: "別の書き手に切り替える",
+    eval_stats_line: "評価セット：このプールは {samples} 件 · {writers} 人の書き手 · {chars}/300 文字をカバー",
+    eval_progress: "書き済み {written} 件 · このプールは残り {left} 文字",
+    eval_empty: "評価セットにはまだサンプルがありません。",
+    eval_finished: "この評価セットは完了しました。ありがとうございます。",
+    eval_round_note: "このプールは言語ごとに 300 文字です。書き終えたら停止して構いません。進捗は自動保存されます。",
   },
 };
 
@@ -171,6 +208,12 @@ const el = {
   submit: document.getElementById("submit"),
   restart: document.getElementById("restart"),
   consent: document.getElementById("consent"),
+  evalAuth: document.getElementById("eval-auth"),
+  writeBody: document.getElementById("write-body"),
+  evalToken: document.getElementById("eval-token"),
+  evalLogin: document.getElementById("eval-login"),
+  evalError: document.getElementById("eval-error"),
+  evalNewWriter: document.getElementById("eval-new-writer"),
 };
 
 const ctx = el.canvas.getContext("2d");
@@ -245,9 +288,18 @@ function applyLanguage() {
     if (typeof text === "string") node.setAttribute("aria-label", text);
   }
   const heroTitle = document.querySelector('[data-i18n="hero_title"]');
-  if (heroTitle) heroTitle.textContent = t("hero_title", { batch: BATCH_SIZE });
+  if (heroTitle) {
+    heroTitle.textContent = t(MODE === "eval" ? "eval_hero" : "hero_title", {
+      batch: BATCH_SIZE,
+    });
+  }
   const roundNote = document.querySelector('[data-i18n="round_note"]');
-  if (roundNote) roundNote.textContent = t("round_note", { batch: BATCH_SIZE });
+  if (roundNote) {
+    roundNote.textContent = t(
+      MODE === "eval" ? "eval_round_note" : "round_note",
+      { batch: BATCH_SIZE },
+    );
+  }
   el.langSelect.value = model.lang;
 }
 
@@ -259,7 +311,10 @@ function setStatus(key, isError = false) {
 function renderTarget() {
   if (model.finished) {
     el.targetChar.textContent = "✓";
-    el.targetChar.setAttribute("aria-label", t("status_finished"));
+    el.targetChar.setAttribute(
+      "aria-label",
+      t(MODE === "eval" ? "eval_finished" : "status_finished"),
+    );
     return;
   }
   const char = model.order[model.pos] || "";
@@ -269,7 +324,7 @@ function renderTarget() {
 
 function renderProgress() {
   const left = Math.max(0, model.order.length - model.pos);
-  el.progress.textContent = t("progress", {
+  el.progress.textContent = t(MODE === "eval" ? "eval_progress" : "progress", {
     written: fmt(model.written),
     left: fmt(left),
   });
@@ -281,20 +336,22 @@ function renderStats() {
     return;
   }
   const total = model.targets[model.lang]?.length || 0;
+  const statsKey = MODE === "eval" ? "eval_stats_line" : "stats_line";
+  const emptyKey = MODE === "eval" ? "eval_empty" : "empty_stats";
   const stats = model.stats.languages?.[model.lang] || {
     samples: 0,
     writers: 0,
     characters: 0,
   };
   if (!stats.samples) {
-    el.statsLine.textContent = t("empty_stats");
+    el.statsLine.textContent = t(emptyKey);
     return;
   }
-  el.statsLine.textContent = t("stats_line", {
+  el.statsLine.textContent = t(statsKey, {
     samples: fmt(stats.samples),
     writers: fmt(stats.writers),
     chars: fmt(stats.characters),
-    total: fmt(total),
+    total: fmt(MODE === "eval" ? 300 : total),
   });
 }
 
@@ -457,14 +514,14 @@ function saveRound() {
   );
 }
 
-function readRound(lang, chars) {
+function readRound(lang, chars, expected) {
   const raw = storageGet(roundKey(lang));
   if (!raw) return null;
   try {
     const value = JSON.parse(raw);
     if (
       !Array.isArray(value.batch) ||
-      value.batch.length !== Math.min(BATCH_SIZE, chars.length) ||
+      value.batch.length !== expected ||
       !value.batch.every((char) => typeof char === "string" && chars.includes(char)) ||
       !Number.isInteger(value.pos) ||
       !Number.isInteger(value.written) ||
@@ -482,13 +539,14 @@ function readRound(lang, chars) {
 }
 
 function setupQueue(chars) {
-  const saved = readRound(model.lang, chars);
+  const expected = MODE === "eval" ? chars.length : Math.min(BATCH_SIZE, chars.length);
+  const saved = readRound(model.lang, chars, expected);
   if (saved) {
     model.order = saved.batch;
     model.pos = saved.pos;
     model.written = saved.written;
   } else {
-    model.order = sampleBatch(chars, BATCH_SIZE);
+    model.order = MODE === "eval" ? chars.slice() : sampleBatch(chars, BATCH_SIZE);
     model.pos = 0;
     model.written = 0;
   }
@@ -498,7 +556,7 @@ function setupQueue(chars) {
 
 async function loadTargets(lang) {
   if (model.targets[lang]) return model.targets[lang];
-  const response = await fetch(`/api/targets?lang=${encodeURIComponent(lang)}`, {
+  const response = await fetch(`${API_BASE}/targets?lang=${encodeURIComponent(lang)}`, {
     cache: "no-store",
   });
   if (!response.ok) throw new Error("targets");
@@ -531,7 +589,13 @@ async function switchLanguage(lang) {
     renderProgress();
     renderStats();
     updateControls();
-    setStatus(model.finished ? "status_finished" : "status_ready");
+    setStatus(
+      model.finished
+        ? MODE === "eval"
+          ? "eval_finished"
+          : "status_finished"
+        : "status_ready",
+    );
   } catch {
     if (token === model.loadToken) setStatus("status_load_error", true);
   }
@@ -539,7 +603,7 @@ async function switchLanguage(lang) {
 
 async function loadStats() {
   try {
-    const response = await fetch("/api/stats", { cache: "no-store" });
+    const response = await fetch(`${API_BASE}/stats`, { cache: "no-store" });
     if (!response.ok) return;
     model.stats = await response.json();
     renderStats();
@@ -550,7 +614,7 @@ async function loadStats() {
 
 async function checkSession() {
   try {
-    const response = await fetch("/api/session", { cache: "no-store" });
+    const response = await fetch(`${API_BASE}/session`, { cache: "no-store" });
     if (!response.ok) return;
     const data = await response.json();
     model.hasSession = data.ok === true;
@@ -593,14 +657,14 @@ async function ensureSession() {
   if (model.hasSession) return;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     setStatus("status_preparing");
-    const response = await fetch("/api/challenge", { cache: "no-store" });
+    const response = await fetch(`${API_BASE}/challenge`, { cache: "no-store" });
     if (!response.ok) throw new Error("challenge");
     const data = await response.json();
     if (typeof data.challenge !== "string" || !Number.isInteger(data.difficulty)) {
       throw new Error("challenge");
     }
     const nonce = await solvePow(data.challenge, data.difficulty);
-    const session = await fetch("/api/session", {
+    const session = await fetch(`${API_BASE}/session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ challenge: data.challenge, nonce }),
@@ -616,7 +680,7 @@ async function ensureSession() {
 }
 
 function submitSample(payload) {
-  return fetch("/api/samples", {
+  return fetch(`${API_BASE}/samples`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -671,8 +735,9 @@ async function submit() {
     redraw();
     renderTarget();
     renderProgress();
-    if (model.finished) setStatus("status_finished");
-    else setStatus(duplicate ? "status_duplicate" : "status_saved");
+    if (model.finished) {
+      setStatus(MODE === "eval" ? "eval_finished" : "status_finished");
+    } else setStatus(duplicate ? "status_duplicate" : "status_saved");
     loadStats();
   } catch (error) {
     if (error instanceof TypeError) setStatus("status_offline", true);
@@ -699,7 +764,13 @@ function skip() {
   renderTarget();
   renderProgress();
   updateControls();
-  setStatus(model.finished ? "status_finished" : "status_ready");
+  setStatus(
+    model.finished
+      ? MODE === "eval"
+        ? "eval_finished"
+        : "status_finished"
+      : "status_ready",
+  );
 }
 
 function restart() {
@@ -707,7 +778,10 @@ function restart() {
   model.pos = 0;
   model.written = 0;
   model.finished = false;
-  model.order = sampleBatch(model.targets[model.lang], BATCH_SIZE);
+  model.order =
+    MODE === "eval"
+      ? model.targets[model.lang].slice()
+      : sampleBatch(model.targets[model.lang], BATCH_SIZE);
   strokes = [];
   current = null;
   drawing = false;
@@ -739,6 +813,16 @@ function wireEvents() {
   el.canvas.addEventListener("pointerup", endStroke);
   el.canvas.addEventListener("pointercancel", endStroke);
   el.canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+  if (el.evalLogin) el.evalLogin.addEventListener("click", evalLogin);
+  if (el.evalToken) {
+    el.evalToken.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        evalLogin();
+      }
+    });
+  }
+  if (el.evalNewWriter) el.evalNewWriter.addEventListener("click", evalNewWriter);
   document.addEventListener("keydown", (event) => {
     const tag = (event.target && event.target.tagName
       ? event.target.tagName
@@ -755,6 +839,65 @@ function wireEvents() {
   });
 }
 
+async function ensureEvalAuth() {
+  if (MODE !== "eval") return true;
+  try {
+    const response = await fetch(`${API_BASE}/eval/status`, { cache: "no-store" });
+    if (response.ok) {
+      const data = await response.json();
+      if (data.ok === true) return true;
+    }
+  } catch {
+    /* fall through to the token form */
+  }
+  return false;
+}
+
+async function startWrite() {
+  checkSession();
+  loadStats();
+  await switchLanguage(model.lang);
+}
+
+async function evalLogin() {
+  const token = el.evalToken ? el.evalToken.value.trim() : "";
+  if (!token) {
+    if (el.evalError) el.evalError.textContent = t("eval_login_error");
+    return;
+  }
+  if (el.evalError) el.evalError.textContent = "";
+  try {
+    const response = await fetch(`${API_BASE}/eval/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    if (!response.ok) {
+      if (el.evalError) el.evalError.textContent = t("eval_login_error");
+      return;
+    }
+    el.evalAuth.hidden = true;
+    el.writeBody.hidden = false;
+    document.body.classList.add("eval-authed");
+    await startWrite();
+  } catch {
+    if (el.evalError) el.evalError.textContent = t("status_offline");
+  }
+}
+
+async function evalNewWriter() {
+  try {
+    await fetch(`${API_BASE}/eval/reset`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+  } catch {
+    /* reload anyway; a stale writer cookie is harmless here */
+  }
+  location.reload();
+}
+
 async function init() {
   const savedLang = storageGet(STORAGE_LANG);
   model.lang = LANGUAGES.includes(savedLang) ? savedLang : "zh_CN";
@@ -763,6 +906,14 @@ async function init() {
   applyLanguage();
   redraw();
   wireEvents();
+  if (MODE === "eval") {
+    el.evalAuth.hidden = false;
+    el.writeBody.hidden = true;
+    if (!(await ensureEvalAuth())) return;
+    el.evalAuth.hidden = true;
+    el.writeBody.hidden = false;
+    document.body.classList.add("eval-authed");
+  }
   checkSession();
   loadStats();
   await switchLanguage(model.lang);
